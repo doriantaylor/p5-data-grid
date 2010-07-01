@@ -1,0 +1,16 @@
+Changes
+MANIFEST
+Makefile.PL
+README
+lib/Data/Grid.pm
+lib/Data/Grid/CSV.pm
+lib/Data/Grid/Cell.pm
+lib/Data/Grid/Excel.pm
+lib/Data/Grid/Excel/XLS.pm
+lib/Data/Grid/Excel/XLSX.pm
+lib/Data/Grid/Row.pm
+lib/Data/Grid/Table.pm
+t/00-load.t
+t/manifest.t
+t/pod-coverage.t
+t/pod.t
