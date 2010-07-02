@@ -1,52 +1,51 @@
 package Data::Grid::CSV;
 
-use warnings;
+use warnings FATAL => 'all';
 use strict;
+
+use base 'Data::Grid';
+
+use Text::CSV;
+use IO::File;
 
 =head1 NAME
 
-Data::Grid::CSV - The great new Data::Grid::CSV!
+Data::Grid::CSV - CSV driver for Data::Grid
 
 =head1 VERSION
 
-Version 0.01
+Version 0.01_01
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.01_01';
 
-
-=head1 SYNOPSIS
-
-Quick summary of what the module does.
-
-Perhaps a little code snippet.
-
-    use Data::Grid::CSV;
-
-    my $foo = Data::Grid::CSV->new();
-    ...
-
-=head1 EXPORT
-
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
-
-=head1 SUBROUTINES/METHODS
-
-=head2 function1
-
-=cut
-
-sub function1 {
+sub new {
+    my $class = shift;
 }
 
-=head2 function2
 
-=cut
+package Data::Grid::CSV::Table;
 
-sub function2 {
+use base 'Data::Grid::Table';
+
+sub rewind {
+    my $self = shift;
+    $self->{parent}{fh}->setpos(0);
 }
+
+sub next {
+    my $self = shift;
+    $self->{proxy}->getline($self->{parent}{fh});
+}
+
+package Data::Grid::CSV::Row;
+
+use base 'Data::Grid::Row';
+
+package Data::Grid::CSV::Cell;
+
+use base 'Data::Grid::Cell';
 
 =head1 AUTHOR
 
@@ -58,15 +57,11 @@ Please report any bugs or feature requests to C<bug-data-grid at rt.cpan.org>, o
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
-
-
-
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
     perldoc Data::Grid::CSV
-
 
 You can also look for information at:
 

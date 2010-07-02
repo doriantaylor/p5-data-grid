@@ -1,51 +1,75 @@
 package Data::Grid::Cell;
 
-use warnings;
+use warnings FATAL => 'all';
 use strict;
+
+use base 'Data::Grid::Container';
+
+use overload '0+'   => \&value;
+use overload '""'   => \&value;
+use overload 'bool' => \&value;
 
 =head1 NAME
 
-Data::Grid::Cell - The great new Data::Grid::Cell!
+Data::Grid::Cell - Cell implementation for Data::Grid::Row
 
 =head1 VERSION
 
-Version 0.01
+Version 0.01_01
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.01_01';
 
 
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
+    for my $cell (@$cells) {
+        warn $cell->value;
 
-Perhaps a little code snippet.
+        # string overload
+        printf "%s\n", $cell;
+    }
 
-    use Data::Grid::Cell;
+=head1 METHODS
 
-    my $foo = Data::Grid::Cell->new();
-    ...
+=head2 value
 
-=head1 EXPORT
+Retrieves a representation of the value of the cell, potentially
+formatted by the source, versus a possible alternate L</literal>
+value. This method is a I<stub>, and should be defined in a driver
+subclass. If the cell is stringified, compared numerically or tested
+for truth, this is the method that is called, like so:
 
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
-
-=head1 SUBROUTINES/METHODS
-
-=head2 function1
+     print "$cell\n"; # stringification overloaded
 
 =cut
 
-sub function1 {
+sub value {
+    Carp::croak("Somebody forgot to override this method.");
 }
 
-=head2 function2
+=head2 literal
+
+Spreadsheets tend to have a literal value underlying a formatted value
+in a cell, which is why we have this class and are not just using
+scalars to represent cells. If your driver has literal values,
+override this method, otherwise it is a no-op.
 
 =cut
 
-sub function2 {
+sub literal {
+    $_[0]->value;
+}
+
+=head2 row
+
+Alias for L<Data::Grid::Container/parent>.
+
+=cut
+
+sub row {
+    $_[0]->parent;
 }
 
 =head1 AUTHOR
@@ -90,9 +114,10 @@ L<http://search.cpan.org/dist/Data-Grid/>
 
 =back
 
+=head1 SEE ALSO
 
-=head1 ACKNOWLEDGEMENTS
-
+L<Data::Grid>, L<Data::Grid::Container>, L<Data::Grid::Table>,
+L<Data::Grid::Row>
 
 =head1 LICENSE AND COPYRIGHT
 

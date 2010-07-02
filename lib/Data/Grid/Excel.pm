@@ -1,38 +1,23 @@
 package Data::Grid::Excel;
 
-use warnings;
+use warnings FATAL => 'all';
 use strict;
+
+use base 'Data::Grid';
 
 =head1 NAME
 
-Data::Grid::Excel - The great new Data::Grid::Excel!
+Data::Grid::Excel - Excel driver for Data::Grid
 
 =head1 VERSION
 
-Version 0.01
+Version 0.01_01
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.01_01';
 
-
-=head1 SYNOPSIS
-
-Quick summary of what the module does.
-
-Perhaps a little code snippet.
-
-    use Data::Grid::Excel;
-
-    my $foo = Data::Grid::Excel->new();
-    ...
-
-=head1 EXPORT
-
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
-
-=head1 SUBROUTINES/METHODS
+=head1 METHODS
 
 =head2 function1
 
@@ -48,6 +33,34 @@ sub function1 {
 sub function2 {
 }
 
+package Data::Grid::Excel::XLS;
+
+our @ISA = qw(Data::Grid::Excel);
+
+sub new {
+    require Spreadsheet::ParseExcel;
+}
+
+package Data::Grid::Excel::XLSX;
+
+our @ISA = qw(Data::Grid::Excel);
+
+sub new {
+    require Spreadsheet::XLSX;
+}
+
+package Data::Grid::Excel::Table;
+
+use base 'Data::Grid::Table';
+
+package Data::Grid::Excel::Row;
+
+use base 'Data::Grid::Row';
+
+package Data::Grid::Excel::Cell;
+
+use base 'Data::Grid::Cell';
+
 =head1 AUTHOR
 
 Dorian Taylor, C<< <dorian at cpan.org> >>
@@ -57,9 +70,6 @@ Dorian Taylor, C<< <dorian at cpan.org> >>
 Please report any bugs or feature requests to C<bug-data-grid at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
-
-
-
 
 =head1 SUPPORT
 
