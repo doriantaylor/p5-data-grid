@@ -3,8 +3,7 @@ package Data::Grid::Row;
 use warnings FATAL => 'all';
 use strict;
 
-use Scalar::Util ();
-use Carp         ();
+use base 'Data::Grid::Container';
 
 use overload '@{}' => \&cells;
 use overload '%{}' => \&as_hash;
@@ -20,7 +19,6 @@ Version 0.01_01
 =cut
 
 our $VERSION = '0.01_01';
-
 
 =head1 SYNOPSIS
 
@@ -88,11 +86,11 @@ such:
 
 sub as_hash {
     my $self = shift;
-    my @cols = $self->table->columns or Carp::croak(
-        q{Can't make a hash of cells. The table must have a heading or },
-        q{the columns must be specified either in the constructor or by },
-        q{setting them with "columns" in Data::Grid::Table.});
-    my @cells = $self->cells;
+#    my @cols = $self->table->columns or Carp::croak(
+#        q{Can't make a hash of cells. The table must have a heading or },
+#        q{the columns must be specified either in the constructor or by },
+#        q{setting them with "columns" in Data::Grid::Table.});
+#    my @cells = $self->cells;
 }
 
 =head1 AUTHOR

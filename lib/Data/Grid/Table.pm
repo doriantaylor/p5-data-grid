@@ -100,7 +100,7 @@ operator C<@{}>, so you can use it like this:
 
 sub rows {
     my ($self, @rows) = @_;
-    my @rows;
+    #my @rows;
 
     $self->rewind;
     while (my $row = $self->next) {
@@ -109,6 +109,13 @@ sub rows {
     $self->rewind;
 
     wantarray ? @rows : \@rows;
+}
+
+=head2 columns
+
+=cut
+
+sub columns {
 }
 
 =head2 width
@@ -136,9 +143,9 @@ unimplemented.
 
 =cut
 
-sub as_string {
-    
-}
+#sub as_string {
+#    
+#}
 
 =head2 as_data_table
 
@@ -167,7 +174,6 @@ your bug as I make changes.
 You can find documentation for this module with the perldoc command.
 
     perldoc Data::Grid::Table
-
 
 You can also look for information at:
 
@@ -205,7 +211,6 @@ under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
-
 
 =cut
 

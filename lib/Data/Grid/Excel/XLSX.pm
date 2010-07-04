@@ -1,16 +1,13 @@
-package Data::Grid::CSV;
+package Data::Grid::Excel;
 
 use warnings FATAL => 'all';
 use strict;
 
 use base 'Data::Grid';
 
-use Text::CSV;
-use IO::File;
-
 =head1 NAME
 
-Data::Grid::CSV - CSV driver for Data::Grid
+Data::Grid::Excel - Excel driver for Data::Grid
 
 =head1 VERSION
 
@@ -20,58 +17,47 @@ Version 0.01_01
 
 our $VERSION = '0.01_01';
 
+=head1 METHODS
+
+=head2 function1
+
+=cut
+
+sub function1 {
+}
+
+=head2 function2
+
+=cut
+
+sub function2 {
+}
+
+package Data::Grid::Excel::XLS;
+
+our @ISA = qw(Data::Grid::Excel);
+
 sub new {
-    my $class = shift;
-    my %p = @_;
-    $p{driver} = Text::CSV->new or die $!;
-    bless \%p, $class;
+    require Spreadsheet::ParseExcel;
 }
 
-sub tables {
-    my $self = shift;
-    #warn @Data::Grid::CSV::Table::ISA;
-    $self->table_class->new($self, 0);
+package Data::Grid::Excel::XLSX;
+
+our @ISA = qw(Data::Grid::Excel);
+
+sub new {
+    require Spreadsheet::XLSX;
 }
 
-sub table_class {
-    'Data::Grid::CSV::Table';
-}
-
-sub row_class {
-    'Data::Grid::CSV::Row';
-}
-
-sub cell_class {
-    'Data::Grid::CSV::Cell';
-}
-
-package Data::Grid::CSV::Table;
-
-#use Data::Grid::Table;
+package Data::Grid::Excel::Table;
 
 use base 'Data::Grid::Table';
 
-sub rewind {
-    my $self = shift;
-    seek $self->parent->{fh}, 0, 0;
-}
-
-sub next {
-    my $self = shift;
-    my $row = $self->parent->{driver}->getline($self->parent->{fh}) or return;
-    $self->parent->row_class->new($self, $self->{counter}++, $row);
-}
-
-package Data::Grid::CSV::Row;
+package Data::Grid::Excel::Row;
 
 use base 'Data::Grid::Row';
 
-sub cells {
-    my $self = shift;
-    my @cells = @{$self->proxy};
-}
-
-package Data::Grid::CSV::Cell;
+package Data::Grid::Excel::Cell;
 
 use base 'Data::Grid::Cell';
 
@@ -89,7 +75,8 @@ automatically be notified of progress on your bug as I make changes.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc Data::Grid::CSV
+    perldoc Data::Grid::Excel
+
 
 You can also look for information at:
 
@@ -130,4 +117,4 @@ See http://dev.perl.org/licenses/ for more information.
 
 =cut
 
-1; # End of Data::Grid::CSV
+1; # End of Data::Grid::Excel

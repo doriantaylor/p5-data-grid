@@ -1,7 +1,17 @@
 package Data::Grid;
 
-use warnings;
+use warnings FATAL => 'all';
 use strict;
+
+use File::MMagic ();
+use IO::File     ();
+use IO::Scalar   ();
+
+my %MAP = (
+    'application/msword' => 'Data::Grid::Excel::XLS',
+    'application/x-zip'  => 'Data::Grid::Excel::XLSX',
+    'text/plain'         => 'Data::Grid::CSV',
+);
 
 =head1 NAME
 
@@ -97,6 +107,58 @@ C<parse> factory method. This method detects
 =cut
 
 sub parse {
+    my $class = shift;
+    my %p;
+    if (@_ == 1) {
+        $p{source} = shift;
+    }
+    else {
+        %p = @_;
+    }
+
+    # croak unless source is defined
+    Carp::croak("I can't do any work unless you specify a data source.")
+          unless defined $p{source};
+
+    if (ref $p{source}) {
+        # if it is a reference, it depends on the kind
+        if (ref $p{source} eq 'SCALAR') {
+            # scalar ref as a literal
+            $p{fh} = IO::Scalar->new($p{source});
+        }
+        elsif (ref $p{source} eq 'ARRAY') {
+            # array ref as a list of lines
+        }
+        elsif (ref $p{source} eq 'GLOB' or Scalar::Util::blessed($p{source})
+                   && $p{source}->isa('IO::Seekable')) {
+            # ioref as just a straight fh
+            $p{fh} = $p{source};
+        }
+        else {
+            # dunno
+        }
+    }
+    else {
+        # if it is a string, it is assumed to be a filename
+        $p{fh} = IO::File->new($p{source}) or Carp::croak($!);
+    }
+    # now check mime type
+    my $magic = File::MMagic->new;
+    my $type  = $magic->checktype_filehandle($p{fh});
+    seek $p{fh}, 0, 0;
+    Carp::croak("Cannot find a driver for $type") unless $MAP{$type};
+    eval "require $MAP{$type};"
+        or die "The driver $MAP{$type} for $type was not found!";
+    $MAP{$type}->new(%p);
+}
+
+=head2 tables
+
+Retrieve the tables
+
+=cut
+
+sub tables {
 }
 
 =head1 EXTENSION INTERFACE
@@ -128,6 +190,12 @@ sub table_class {
 
 Returns the class to use for instantiating rows. Defaults to
 L<Data::Grid::Row>.
+
+=cut
+
+sub row_class {
+    'Data::Grid::Row';
+}
 
 =head2 cell_class
 
