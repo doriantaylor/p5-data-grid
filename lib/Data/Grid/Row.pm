@@ -5,8 +5,8 @@ use strict;
 
 use base 'Data::Grid::Container';
 
-use overload '@{}' => \&cells;
-use overload '%{}' => \&as_hash;
+use overload '@{}' => "cells";
+use overload '%{}' => "as_hash";
 
 =head1 NAME
 

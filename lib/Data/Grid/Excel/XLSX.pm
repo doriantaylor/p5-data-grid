@@ -1,13 +1,15 @@
-package Data::Grid::Excel;
+package Data::Grid::Excel::XLSX;
 
 use warnings FATAL => 'all';
 use strict;
 
-use base 'Data::Grid';
+use Spreadsheet::XLSX;
+
+use base 'Data::Grid::Excel';
 
 =head1 NAME
 
-Data::Grid::Excel - Excel driver for Data::Grid
+Data::Grid::Excel::XLSX - XML-based Excel driver for Data::Grid
 
 =head1 VERSION
 
@@ -23,43 +25,12 @@ our $VERSION = '0.01_01';
 
 =cut
 
-sub function1 {
-}
-
-=head2 function2
-
-=cut
-
-sub function2 {
-}
-
-package Data::Grid::Excel::XLS;
-
-our @ISA = qw(Data::Grid::Excel);
-
 sub new {
-    require Spreadsheet::ParseExcel;
+    my $class = shift;
+    my %p = @_;
+    $p{proxy} = Spreadsheet::XLSX->new($p{fh});
+    bless \%p, $class;
 }
-
-package Data::Grid::Excel::XLSX;
-
-our @ISA = qw(Data::Grid::Excel);
-
-sub new {
-    require Spreadsheet::XLSX;
-}
-
-package Data::Grid::Excel::Table;
-
-use base 'Data::Grid::Table';
-
-package Data::Grid::Excel::Row;
-
-use base 'Data::Grid::Row';
-
-package Data::Grid::Excel::Cell;
-
-use base 'Data::Grid::Cell';
 
 =head1 AUTHOR
 

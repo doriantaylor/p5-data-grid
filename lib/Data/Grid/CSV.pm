@@ -30,7 +30,8 @@ sub new {
 sub tables {
     my $self = shift;
     #warn @Data::Grid::CSV::Table::ISA;
-    $self->table_class->new($self, 0);
+    my $table = $self->table_class->new($self, 0);
+    wantarray ? ($table) : [$table];
 }
 
 sub table_class {
@@ -69,6 +70,7 @@ use base 'Data::Grid::Row';
 sub cells {
     my $self = shift;
     my @cells = @{$self->proxy};
+    wantarray ? @cells : \@cells;
 }
 
 package Data::Grid::CSV::Cell;

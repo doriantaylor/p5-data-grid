@@ -1,13 +1,15 @@
-package Data::Grid::Excel;
+package Data::Grid::Excel::XLS;
 
 use warnings FATAL => 'all';
 use strict;
 
-use base 'Data::Grid';
+use Spreadsheet::ParseExcel;
+
+use base 'Data::Grid::Excel';
 
 =head1 NAME
 
-Data::Grid::Excel - Excel driver for Data::Grid
+Data::Grid::Excel - Excel XLS driver for Data::Grid
 
 =head1 VERSION
 
@@ -19,47 +21,30 @@ our $VERSION = '0.01_01';
 
 =head1 METHODS
 
-=head2 function1
+=head2 new
 
 =cut
 
-sub function1 {
+sub new {
+    my $class = shift;
+    my %p = @_;
+    $p{proxy} = Spreadsheet::ParseExcel->new->parse($p{fh});
+    bless \%p, $class;
 }
 
-=head2 function2
+=head2 tables
 
 =cut
 
-sub function2 {
+sub tables {
+    my $self = shift;
+    my $counter = 0;
+    my @tables;
+    for my $sheet ($self->{proxy}->worksheets) {
+        push @tables, $self->table_class->new($self, $counter++, $sheet);
+    }
+    @tables;
 }
-
-package Data::Grid::Excel::XLS;
-
-our @ISA = qw(Data::Grid::Excel);
-
-sub new {
-    require Spreadsheet::ParseExcel;
-}
-
-package Data::Grid::Excel::XLSX;
-
-our @ISA = qw(Data::Grid::Excel);
-
-sub new {
-    require Spreadsheet::XLSX;
-}
-
-package Data::Grid::Excel::Table;
-
-use base 'Data::Grid::Table';
-
-package Data::Grid::Excel::Row;
-
-use base 'Data::Grid::Row';
-
-package Data::Grid::Excel::Cell;
-
-use base 'Data::Grid::Cell';
 
 =head1 AUTHOR
 

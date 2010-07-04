@@ -5,9 +5,9 @@ use strict;
 
 use base 'Data::Grid::Container';
 
-use overload '0+'   => \&value;
-use overload '""'   => \&value;
-use overload 'bool' => \&value;
+use overload '0+'   => 'value';
+use overload '""'   => 'value';
+use overload 'bool' => 'value';
 
 =head1 NAME
 

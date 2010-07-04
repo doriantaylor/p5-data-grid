@@ -8,7 +8,7 @@ use IO::File     ();
 use IO::Scalar   ();
 
 my %MAP = (
-    'application/msword' => 'Data::Grid::Excel::XLS',
+    'application/msword' => 'Data::Grid::Excel',
     'application/x-zip'  => 'Data::Grid::Excel::XLSX',
     'text/plain'         => 'Data::Grid::CSV',
 );
@@ -147,8 +147,8 @@ sub parse {
     my $type  = $magic->checktype_filehandle($p{fh});
     seek $p{fh}, 0, 0;
     Carp::croak("Cannot find a driver for $type") unless $MAP{$type};
-    eval "require $MAP{$type};"
-        or die "The driver $MAP{$type} for $type was not found!";
+    eval "require $MAP{$type};" or die;
+#        or die "The driver $MAP{$type} for $type was not found!";
     $MAP{$type}->new(%p);
 }
 

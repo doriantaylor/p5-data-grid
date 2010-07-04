@@ -19,47 +19,93 @@ our $VERSION = '0.01_01';
 
 =head1 METHODS
 
-=head2 function1
+=head2 new
 
 =cut
 
-sub function1 {
+sub new {
+    my $class = shift;
+    my %p = @_;
+    $p{proxy} = Spreadsheet::ParseExcel->new->parse($p{fh});
+    bless \%p, $class;
 }
 
-=head2 function2
+=head2 tables
 
 =cut
 
-sub function2 {
+sub tables {
+    my $self = shift;
+    my $counter = 0;
+    my @tables;
+    for my $sheet ($self->{proxy}->worksheets) {
+        push @tables, $self->table_class->new($self, $counter++, $sheet);
+    }
+    wantarray ? @tables : \@tables;
 }
 
-package Data::Grid::Excel::XLS;
-
-our @ISA = qw(Data::Grid::Excel);
-
-sub new {
-    require Spreadsheet::ParseExcel;
+sub table_class {
+    'Data::Grid::Excel::Table';
 }
 
-package Data::Grid::Excel::XLSX;
+sub row_class {
+    'Data::Grid::Excel::Row';
+}
 
-our @ISA = qw(Data::Grid::Excel);
-
-sub new {
-    require Spreadsheet::XLSX;
+sub cell_class {
+    'Data::Grid::Excel::Cell';
 }
 
 package Data::Grid::Excel::Table;
 
 use base 'Data::Grid::Table';
 
+sub rewind {
+    $_[0]->{counter} = 0;
+}
+
+sub next {
+    my $self = shift;
+    $self->{counter} ||= 0;
+    my ($minr, $maxr) = $self->proxy->row_range;
+    #my ($minc, $maxc) = $self->proxy->col_range;
+
+    if ($self->{counter} + $minr <= $maxr) {
+        #warn "yooo";
+        #warn $self->parent->row_class;
+        return $self->parent->row_class->new
+            ($self, $self->{counter}, $minr + $self->{counter}++);
+    }
+}
+
 package Data::Grid::Excel::Row;
 
 use base 'Data::Grid::Row';
 
+sub cells {
+    my $self = shift;
+    my ($minc, $maxc) = $self->parent->proxy->col_range;
+    warn "$minc $maxc";
+    my @cells;
+    #warn $self->parent->parent->cell_class;
+    for (my $c = 0; $c <= $maxc - $minc; $c++) {
+        push @cells, $self->parent->parent->cell_class->new
+            ($self, $c, $self->parent->proxy->get_cell($self->proxy, $c));
+    }
+    wantarray ? @cells : \@cells;
+}
+
 package Data::Grid::Excel::Cell;
 
 use base 'Data::Grid::Cell';
+
+sub value {
+    $_[0]->proxy->value if defined $_[0]->proxy;
+}
+
+sub literal {
+    $_[0]->proxy->unformatted if defined $_[0]->proxy;
+}
 
 =head1 AUTHOR
 
