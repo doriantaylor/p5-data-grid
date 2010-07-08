@@ -5,6 +5,8 @@ use strict;
 
 use base 'Data::Grid';
 
+use Spreadsheet::ParseExcel;
+
 =head1 NAME
 
 Data::Grid::Excel - Excel driver for Data::Grid
@@ -26,7 +28,8 @@ our $VERSION = '0.01_01';
 sub new {
     my $class = shift;
     my %p = @_;
-    $p{proxy} = Spreadsheet::ParseExcel->new->parse($p{fh});
+    $p{driver} = Spreadsheet::ParseExcel->new;
+    $p{proxy}  = $p{driver}->parse($p{fh}) or die $p{driver}->error;
     bless \%p, $class;
 }
 
@@ -85,7 +88,7 @@ use base 'Data::Grid::Row';
 sub cells {
     my $self = shift;
     my ($minc, $maxc) = $self->parent->proxy->col_range;
-    warn "$minc $maxc";
+    #warn "$minc $maxc";
     my @cells;
     #warn $self->parent->parent->cell_class;
     for (my $c = 0; $c <= $maxc - $minc; $c++) {

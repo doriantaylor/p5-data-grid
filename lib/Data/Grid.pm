@@ -7,10 +7,15 @@ use File::MMagic ();
 use IO::File     ();
 use IO::Scalar   ();
 
+#use overload '@{}' => 'tables';
+
 my %MAP = (
-    'application/msword' => 'Data::Grid::Excel',
-    'application/x-zip'  => 'Data::Grid::Excel::XLSX',
-    'text/plain'         => 'Data::Grid::CSV',
+    'application/octet-stream' => 'Data::Grid::Excel',
+    'application/msword'       => 'Data::Grid::Excel',
+    'application/excel'        => 'Data::Grid::Excel',
+    'application/x-zip'        => 'Data::Grid::Excel::XLSX',
+    'text/plain'               => 'Data::Grid::CSV',
+    'text/csv'                 => 'Data::Grid::CSV',
 );
 
 =head1 NAME

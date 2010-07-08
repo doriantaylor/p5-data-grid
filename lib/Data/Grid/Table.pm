@@ -5,8 +5,8 @@ use strict;
 
 use base 'Data::Grid::Container';
 
-use overload '<>'  => \&next;
-use overload '@{}' => \&rows;
+use overload '<>'  => "next";
+use overload '@{}' => "rows";
 
 =head1 NAME
 
