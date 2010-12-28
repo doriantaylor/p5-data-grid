@@ -6,6 +6,7 @@ use strict;
 use File::MMagic ();
 use IO::File     ();
 use IO::Scalar   ();
+use Scalar::Util ();
 
 #use overload '@{}' => 'tables';
 
@@ -147,13 +148,14 @@ sub parse {
         # if it is a string, it is assumed to be a filename
         $p{fh} = IO::File->new($p{source}) or Carp::croak($!);
     }
+    binmode $p{fh};
     # now check mime type
     my $magic = File::MMagic->new;
     my $type  = $magic->checktype_filehandle($p{fh});
     seek $p{fh}, 0, 0;
-    Carp::croak("Cannot find a driver for $type") unless $MAP{$type};
+    Carp::croak("There is no driver mapped to $type") unless $MAP{$type};
     eval "require $MAP{$type};" or die;
-#        or die "The driver $MAP{$type} for $type was not found!";
+#        or die "Type $type points to driver $MAP{$type} which is broken or nonexistent";
     $MAP{$type}->new(%p);
 }
 

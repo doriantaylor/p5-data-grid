@@ -73,12 +73,13 @@ sub next {
     my ($minr, $maxr) = $self->proxy->row_range;
     #my ($minc, $maxc) = $self->proxy->col_range;
 
-    if ($self->{counter} + $minr <= $maxr) {
+    if ($maxr - $minr > 0 and $self->{counter} + $minr <= $maxr) {
         #warn "yooo";
         #warn $self->parent->row_class;
         return $self->parent->row_class->new
             ($self, $self->{counter}, $minr + $self->{counter}++);
     }
+    return;
 }
 
 package Data::Grid::Excel::Row;
