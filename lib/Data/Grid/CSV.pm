@@ -20,12 +20,20 @@ Version 0.01_01
 
 our $VERSION = '0.01_01';
 
+=head2 new
+
+=cut
+
 sub new {
     my $class = shift;
     my %p = @_;
-    $p{driver} = Text::CSV->new or die $!;
+    $p{driver} = Text::CSV->new($p{options} || {}) or die $!;
     bless \%p, $class;
 }
+
+=head2 tables
+
+=cut
 
 sub tables {
     my $self = shift;
@@ -34,13 +42,25 @@ sub tables {
     wantarray ? ($table) : [$table];
 }
 
+=head2 table_class
+
+=cut
+
 sub table_class {
     'Data::Grid::CSV::Table';
 }
 
+=head2 row_class
+
+=cut
+
 sub row_class {
     'Data::Grid::CSV::Row';
 }
+
+=head2 cell_class
+
+=cut
 
 sub cell_class {
     'Data::Grid::CSV::Cell';

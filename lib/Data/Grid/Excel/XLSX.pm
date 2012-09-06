@@ -21,7 +21,7 @@ our $VERSION = '0.01_01';
 
 =head1 METHODS
 
-=head2 function1
+=head2 new
 
 =cut
 

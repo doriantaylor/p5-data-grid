@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 10;
+use Test::More tests => 9;
 
 sub not_in_file_ok {
     my ($filename, %regex) = @_;
@@ -50,7 +50,6 @@ TODO: {
 
   module_boilerplate_ok('lib/Data/Grid.pm');
   module_boilerplate_ok('lib/Data/Grid/Excel.pm');
-  module_boilerplate_ok('lib/Data/Grid/Excel/XLS.pm');
   module_boilerplate_ok('lib/Data/Grid/Excel/XLSX.pm');
   module_boilerplate_ok('lib/Data/Grid/CSV.pm');
   module_boilerplate_ok('lib/Data/Grid/Table.pm');

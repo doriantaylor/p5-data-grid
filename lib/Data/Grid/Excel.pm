@@ -47,13 +47,25 @@ sub tables {
     wantarray ? @tables : \@tables;
 }
 
+=head2 table_class
+
+=cut
+
 sub table_class {
     'Data::Grid::Excel::Table';
 }
 
+=head2 row_class
+
+=cut
+
 sub row_class {
     'Data::Grid::Excel::Row';
 }
+
+=head2 cell_class
+
+=cut
 
 sub cell_class {
     'Data::Grid::Excel::Cell';

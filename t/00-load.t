@@ -1,13 +1,11 @@
 #!perl -T
 
-use Test::More tests => 8;
+use Test::More tests => 7;
 
 BEGIN {
     use_ok( 'Data::Grid' ) || print "Bail out!
 ";
     use_ok( 'Data::Grid::Excel' ) || print "Bail out!
-";
-    use_ok( 'Data::Grid::Excel::XLS' ) || print "Bail out!
 ";
     use_ok( 'Data::Grid::Excel::XLSX' ) || print "Bail out!
 ";
