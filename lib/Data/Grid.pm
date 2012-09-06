@@ -75,9 +75,9 @@ our $VERSION = '0.01_01';
 
 =item Problem 1
 
-You have a mountain of data files from two decades of using
-MS Office (and other) products, and you want to collate their contents
-into someplace sane.
+You have a mountain of data files from two decades of using MS Office
+(and other) products, and you want to collate their contents into
+someplace sane.
 
 =item Problem 2
 
@@ -102,6 +102,8 @@ system resources.
 Odds are I will probably decide to change the interface at some point
 before locking in, and I don't want to guarantee consistency yet. If I
 do, and you use this, your code will probably break.
+
+Suffice to say this module is B<ALPHA QUALITY> at best.
 
 =head1 METHODS
 
@@ -265,11 +267,16 @@ L<Data::Table>
 
 Copyright 2010 Dorian Taylor.
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of either: the GNU General Public License as
-published by the Free Software Foundation; or the Artistic License.
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License.  You may
+obtain a copy of the License at
+L<http://www.apache.org/licenses/LICENSE-2.0>.
 
-See http://dev.perl.org/licenses/ for more information.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied.  See the License for the specific language governing
+permissions and limitations under the License.
 
 =cut
 
