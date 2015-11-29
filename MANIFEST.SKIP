@@ -2,3 +2,4 @@ MANIFEST\.bak
 \.hg
 \#.*\#
 \.\#.*
+\.gitignore

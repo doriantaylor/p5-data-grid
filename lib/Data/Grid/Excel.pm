@@ -6,6 +6,7 @@ use strict;
 use base 'Data::Grid';
 
 use Spreadsheet::ParseExcel;
+use Carp ();
 
 =head1 NAME
 
@@ -29,7 +30,7 @@ sub new {
     my $class = shift;
     my %p = @_;
     $p{driver} = Spreadsheet::ParseExcel->new;
-    $p{proxy}  = $p{driver}->parse($p{fh}) or die $p{driver}->error;
+    $p{proxy}  = $p{driver}->parse($p{fh}) or Carp::croak($p{driver}->error);
     bless \%p, $class;
 }
 
