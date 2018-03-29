@@ -25,11 +25,11 @@ Data::Grid - Incremental read-only (for now) access to grid-based data
 
 =head1 VERSION
 
-Version 0.01_01
+Version 0.01_02
 
 =cut
 
-our $VERSION = '0.01_01';
+our $VERSION = '0.01_02';
 
 =head1 SYNOPSIS
 
@@ -159,6 +159,18 @@ sub parse {
     eval "require $MAP{$type};" or die;
 #        or die "Type $type points to driver $MAP{$type} which is broken or nonexistent";
     $MAP{$type}->new(%p);
+}
+
+=head2 fields
+
+retrieve the fields
+
+=cut
+
+sub fields {
+    my $self   = shift;
+    my @fields = @{$self->{fields} || []};
+    wantarray ? @fields : \@fields;
 }
 
 =head2 tables

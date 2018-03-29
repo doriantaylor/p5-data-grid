@@ -3,7 +3,8 @@ use warnings;
 use inc::Module::Install;
 
 name     'Data-Grid';
-abstract 'Data::Grid provides basic, incremental access to grid-shaped data.';
+abstract  'Data::Grid provides basic, incremental access to grid-shaped data.';
+readme_from 'lib/Data/Grid.pm';
 all_from 'lib/Data/Grid.pm';
 
 requires 'Data::Table'             => '1.54';

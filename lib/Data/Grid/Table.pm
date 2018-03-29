@@ -116,6 +116,7 @@ sub rows {
 =cut
 
 sub columns {
+    $_[0]->parent->columns;
 }
 
 =head2 width

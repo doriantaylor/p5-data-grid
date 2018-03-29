@@ -1,50 +1,149 @@
-The goal of Data::Grid is to provide an extensible, uniform,
-object-oriented interface to all kinds of grid-shaped data. A key
-behaviour I'm after is to perform an incremental read over a
-potentially large data source, so as not to unnecessarily gobble up
-system resources.
+NAME
+    Data::Grid - Incremental read-only (for now) access to grid-based data
 
-INSTALLATION
+VERSION
+    Version 0.01_02
 
-To install this module, run the following commands:
+SYNOPSIS
+        use Data::Grid;
 
-	perl Makefile.PL
-	make
-	make test
-	make install
+        # Have the parser guess the kind of file, using defaults.
 
-SUPPORT AND DOCUMENTATION
+        my $grid = Data::Grid->parse('arbitrary.xls');
 
-After installing, you can find documentation for this module with the
-perldoc command.
+        # or
 
-    perldoc Data::Grid
+        my $grid = Data::Grid->parse(
+            source  => 'arbitrary.csv', # or xls, or xlsx, or filehandle...
+            header  => 1,               # first line is a header everywhere
+            fields  => [qw(a b c)],     # override field header
+            options => \%options,       # driver-specific options
+        );
 
-You can also look for information at:
+        # Each object contains one or more tables.
 
-    RT, CPAN's request tracker
-        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Grid
+        for my $table ($grid->tables) {
 
-    AnnoCPAN, Annotated CPAN documentation
-        http://annocpan.org/dist/Data-Grid
+            # Each table has one or more rows.
 
-    CPAN Ratings
-        http://cpanratings.perl.org/d/Data-Grid
+            while (my $row = $table->next) {
 
-    Search CPAN
-        http://search.cpan.org/dist/Data-Grid/
+                # The columns can be dereferenced as an array,
 
+                my @cols = @$row; # or just $row->columns
+
+                # or, if header is present or fields were named in the
+                # constructor, as a hash.
+
+                my %cols = %$row;
+
+                # Now we can do stuff.
+            }
+        }
+
+DESCRIPTION
+    Problem 1
+        You have a mountain of data files from two decades of using MS
+        Office (and other) products, and you want to collate their contents
+        into someplace sane.
+
+    Problem 2
+        The files are in numerous different formats, and a consistent
+        interface would really cut down on the effort of extracting them.
+
+    Problem 3
+        You've looked at Data::Table and Spreadsheet::Read, but deemed their
+        table-at-a-time strategy to be inappropriate for your purposes.
+
+    The goal of Data::Grid is to provide an extensible, uniform,
+    object-oriented interface to all kinds of grid-shaped data. A key
+    behaviour I'm after is to perform an incremental read over a potentially
+    large data source, so as not to unnecessarily gobble up system
+    resources.
+
+DEVELOPER RELEASE
+    Odds are I will probably decide to change the interface at some point
+    before locking in, and I don't want to guarantee consistency yet. If I
+    do, and you use this, your code will probably break.
+
+    Suffice to say this module is ALPHA QUALITY at best.
+
+METHODS
+  parse $file | %params
+    The principal way to instantiate a Data::Grid object is through the
+    "parse" factory method. This method detects
+
+  fields
+    retrieve the fields
+
+  tables
+    Retrieve the tables
+
+EXTENSION INTERFACE
+  new
+    This *new* is only part of the extension interface. It is a basic
+    utility constructor intended to take an already-parsed object and
+    parameters and proxy them.
+
+  table_class
+    Returns the class to use for instantiating tables. Defaults to
+    Data::Grid::Table, which is an abstract class. Override this method with
+    your own value for extensions.
+
+  row_class
+    Returns the class to use for instantiating rows. Defaults to
+    Data::Grid::Row.
+
+  cell_class
+    Returns the class to use for instantiating cells. Defaults to
+    Data::Grid::Cell, again an abstract class.
+
+AUTHOR
+    Dorian Taylor, "<dorian at cpan.org>"
+
+BUGS
+    Please report any bugs or feature requests to "bug-data-grid at
+    rt.cpan.org", or through the web interface at
+    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>. I will be
+    notified, and then you'll automatically be notified of progress on your
+    bug as I make changes.
+
+SUPPORT
+    You can find documentation for this module with the perldoc command.
+
+        perldoc Data::Grid
+
+    You can also look for information at:
+
+    *   RT: CPAN's request tracker
+
+        <http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Grid>
+
+    *   AnnoCPAN: Annotated CPAN documentation
+
+        <http://annocpan.org/dist/Data-Grid>
+
+    *   CPAN Ratings
+
+        <http://cpanratings.perl.org/d/Data-Grid>
+
+    *   Search CPAN
+
+        <http://search.cpan.org/dist/Data-Grid/>
+
+SEE ALSO
+    Text::CSV_XS, Spreadsheet::ReadExcel, Spreadsheet::XLSX, Data::Table
 
 LICENSE AND COPYRIGHT
+    Copyright 2010 Dorian Taylor.
 
-Copyright (C) 2010 Dorian Taylor
+    Licensed under the Apache License, Version 2.0 (the "License"); you may
+    not use this file except in compliance with the License. You may obtain
+    a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you
-may not use this file except in compliance with the License. You may
-obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0> .
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-implied.  See the License for the specific language governing
-permissions and limitations under the License.

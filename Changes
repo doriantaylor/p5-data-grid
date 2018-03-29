@@ -1,5 +1,4 @@
 Revision history for Data-Grid
 
-0.01    Date/time
-        First version, released on an unsuspecting world.
-
+0.01_02 Thu Mar 29 11:35:50 PDT 2018
+        solved the 'deep recursion' mystery of ::Row->as_hash

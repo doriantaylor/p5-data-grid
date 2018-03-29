@@ -48,6 +48,7 @@ belongs. Alias for L<Data::Grid::Container/parent>.
 =cut
 
 sub table {
+    no overload '%{}';
     $_[0]->parent;
 }
 
@@ -86,11 +87,17 @@ such:
 
 sub as_hash {
     my $self = shift;
-#    my @cols = $self->table->columns or Carp::croak(
-#        q{Can't make a hash of cells. The table must have a heading or },
-#        q{the columns must be specified either in the constructor or by },
-#        q{setting them with "columns" in Data::Grid::Table.});
-#    my @cells = $self->cells;
+    my @cols = $self->table->parent->fields or Carp::croak(
+        q{Can't make a hash of cells. The table must have a heading or },
+        q{the columns must be specified either in the constructor or by },
+        q{setting them with "columns" in Data::Grid::Table.});
+    my @cells = $self->cells;
+
+    my %out;
+    for my $i (0..$#cols) {
+        $out{$cols[$i]} = $cells[$i];
+    }
+    wantarray ? %out : \%out;
 }
 
 =head1 AUTHOR

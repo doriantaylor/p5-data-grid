@@ -48,14 +48,17 @@ advantageous to do so.
 
 sub new {
     my ($class, $parent, $position, $proxy) = @_;
-    my $self = bless {
+    my %p = (
         parent   => $parent,
         position => $position,
         proxy    => $proxy,
-    }, $class;
-    Scalar::Util::weaken($self->{parent})
-          unless Scalar::Util::isweak($self->{parent});
-    $self;
+    );
+
+    # this will deep-recurse due to overloading (and `no overload`
+    # doesn't work) unless done exactly like this
+    Scalar::Util::weaken($p{parent}) unless Scalar::Util::isweak($p{parent});
+
+    bless \%p, $class;
 }
 
 =head2 parent
@@ -65,7 +68,7 @@ Retrieve the parent object.
 =cut
 
 sub parent {
-   $_[0]->{parent};
+    $_[0]{parent};
 }
 
 =head2 position
@@ -76,7 +79,7 @@ the constructor.
 =cut
 
 sub position {
-    $_[0]->{position};
+    $_[0]{position};
 }
 
 =head2 proxy
@@ -86,7 +89,7 @@ Retrieve the proxy object (for internal manipulation).
 =cut
 
 sub proxy {
-    $_[0]->{proxy};
+    $_[0]{proxy};
 }
 
 =head2 as_string
