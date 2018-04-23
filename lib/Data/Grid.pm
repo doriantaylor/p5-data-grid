@@ -25,11 +25,11 @@ Data::Grid - Incremental read-only (for now) access to grid-based data
 
 =head1 VERSION
 
-Version 0.01_03
+Version 0.01_04
 
 =cut
 
-our $VERSION = '0.01_03';
+our $VERSION = '0.01_04';
 
 =head1 SYNOPSIS
 

@@ -14,11 +14,11 @@ Data::Grid::CSV - CSV driver for Data::Grid
 
 =head1 VERSION
 
-Version 0.01_01
+Version 0.01_02
 
 =cut
 
-our $VERSION = '0.01_01';
+our $VERSION = '0.01_02';
 
 =head2 new
 
@@ -27,7 +27,7 @@ our $VERSION = '0.01_01';
 sub new {
     my $class = shift;
     my %p = @_;
-    $p{driver} = Text::CSV->new($p{options} || {}) or die $!;
+    $p{driver} = Text::CSV->new($p{options} || { binary => 1 }) or die $!;
     bless \%p, $class;
 }
 
@@ -79,7 +79,12 @@ sub rewind {
 
 sub next {
     my $self = shift;
-    my $row = $self->parent->{driver}->getline($self->parent->{fh}) or return;
+    my $dr  = $self->parent->{driver};
+    my $row = $dr->getline($self->parent->{fh});
+    return if !$row and $dr->eof;
+
+    $row ||= [];
+
     $self->parent->row_class->new($self, $self->{counter}++, $row);
 }
 
@@ -103,9 +108,11 @@ Dorian Taylor, C<< <dorian at cpan.org> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-data-grid at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests to C<bug-data-grid at
+rt.cpan.org>, or through the web interface at
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will
+be notified, and then you'll automatically be notified of progress on
+your bug as I make changes.
 
 =head1 SUPPORT
 

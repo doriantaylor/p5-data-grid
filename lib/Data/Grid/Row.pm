@@ -14,11 +14,11 @@ Data::Grid::Row - Row implementation for Data::Grid::Table
 
 =head1 VERSION
 
-Version 0.01_02
+Version 0.01_03
 
 =cut
 
-our $VERSION = '0.01_02';
+our $VERSION = '0.01_03';
 
 =head1 SYNOPSIS
 
@@ -96,7 +96,8 @@ sub as_hash {
 
     my %out;
     for my $i (0..$#cols) {
-        $out{$cols[$i]} = $flatten ? $cells[$i]->value : $cells[$i];
+        $out{$cols[$i]} = ($flatten && ref $cells[$i]) ?
+            $cells[$i]->value : $cells[$i];
     }
     wantarray ? %out : \%out;
 }
