@@ -14,11 +14,11 @@ Data::Grid::Row - Row implementation for Data::Grid::Table
 
 =head1 VERSION
 
-Version 0.01_01
+Version 0.01_02
 
 =cut
 
-our $VERSION = '0.01_01';
+our $VERSION = '0.01_02';
 
 =head1 SYNOPSIS
 
@@ -86,7 +86,8 @@ such:
 =cut
 
 sub as_hash {
-    my $self = shift;
+    my $self    = shift;
+    my $flatten = shift;
     my @cols = $self->table->parent->fields or Carp::croak(
         q{Can't make a hash of cells. The table must have a heading or },
         q{the columns must be specified either in the constructor or by },
@@ -95,7 +96,7 @@ sub as_hash {
 
     my %out;
     for my $i (0..$#cols) {
-        $out{$cols[$i]} = $cells[$i];
+        $out{$cols[$i]} = $flatten ? $cells[$i]->value : $cells[$i];
     }
     wantarray ? %out : \%out;
 }
