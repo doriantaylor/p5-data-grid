@@ -1,35 +1,49 @@
 package Data::Grid;
 
-use warnings FATAL => 'all';
+use 5.012;
 use strict;
+use warnings FATAL => 'all';
 
 use File::MMagic ();
 use IO::File     ();
 use IO::Scalar   ();
 use Scalar::Util ();
 
+# module-loading paraphernalia
+use String::RewritePrefix ();
+use Class::Load           ();
+
+use Moo;
+use Data::Grid::Types qw(Source Fields HeaderFlags);
+use Type::Params qw(compile multisig Invocant);
+use Types::Standard qw(slurpy Optional ClassName Any Bool
+                       Str ScalarRef HashRef Enum Dict);
+
 #use overload '@{}' => 'tables';
 
+# store it this way then flip it around
+
 my %MAP = (
-    'application/octet-stream' => 'Data::Grid::Excel',
-    'application/msword'       => 'Data::Grid::Excel',
-    'application/excel'        => 'Data::Grid::Excel',
-    'application/x-zip'        => 'Data::Grid::Excel::XLSX',
-    'text/plain'               => 'Data::Grid::CSV',
-    'text/csv'                 => 'Data::Grid::CSV',
+    CSV   => [qw(text/plain text/csv)],
+    Excel => [qw(application/octet-stream application/msword
+                 application/excel)],
+    'Excel::XLSX' => [
+        qw(application/x-zip application/x-zip-compressed application/zip
+           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)],
 );
+%MAP = map { my $k = $_; my @x = @{$MAP{$k}}; map { $_ => $k } @x } keys %MAP;
 
 =head1 NAME
 
-Data::Grid - Incremental read-only (for now) access to grid-based data
+Data::Grid - Incremental read access to grid-based data
 
 =head1 VERSION
 
-Version 0.01_04
+Version 0.01_05
 
 =cut
 
-our $VERSION = '0.01_04';
+our $VERSION = '0.01_05';
 
 =head1 SYNOPSIS
 
@@ -112,17 +126,45 @@ Suffice to say this module is B<ALPHA QUALITY> at best.
 The principal way to instantiate a L<Data::Grid> object is through the
 C<parse> factory method. This method detects
 
+=over 4
+
+=item source
+
+This is equivalent to C<$file>.
+
+=item header
+
+
+
+=item fields
+
+=item options
+
+=item driver
+
+=item checker
+
+=back
+
 =cut
 
 sub parse {
-    my $class = shift;
-    my %p;
-    if (@_ == 1) {
-        $p{source} = shift;
-    }
-    else {
-        %p = @_;
-    }
+    state $check = Type::Params::multisig(
+        [Invocant, Source],
+        [Invocant, slurpy Dict[source  => Source,
+                               header  => Optional[HeaderFlags],
+                               fields  => Optional[Fields],
+                               options => Optional[HashRef],
+                               driver  => Optional[ClassName],
+                               checker => Optional[Enum['MMagic', 'MimeInfo']],
+                               slurpy Any]]
+    );
+
+    my ($class, $p) = $check->(@_);
+    my %p = ref $p eq 'HASH' ? %$p : (source => $p);
+
+    #require Data::Dumper;
+    #warn Data::Dumper::Dumper(\%p);
 
     # croak unless source is defined
     Carp::croak("I can't do any work unless you specify a data source.")
@@ -151,14 +193,23 @@ sub parse {
         $p{fh} = IO::File->new($p{source}) or Carp::croak($!);
     }
     binmode $p{fh};
-    # now check mime type
-    my $magic = File::MMagic->new;
-    my $type  = $magic->checktype_filehandle($p{fh});
-    seek $p{fh}, 0, 0;
-    Carp::croak("There is no driver mapped to $type") unless $MAP{$type};
-    eval "require $MAP{$type};" or die;
-#        or die "Type $type points to driver $MAP{$type} which is broken or nonexistent";
-    $MAP{$type}->new(%p);
+
+    unless ($p{driver}) {
+        # now check mime type
+        my $magic = File::MMagic->new;
+        my $type  = $magic->checktype_filehandle($p{fh});
+        seek $p{fh}, 0, 0;
+        Carp::croak("There is no driver mapped to $type") unless $MAP{$type};
+
+        $p{driver} = $MAP{$type};
+    }
+
+    (my $driver) = String::RewritePrefix->rewrite
+        ({ '' => 'Data::Grid::', '+' => ''}, delete $p{driver});
+
+    Class::Load::load_class($driver);
+
+    $driver->new(%p);
 }
 
 =head2 fields
@@ -190,11 +241,6 @@ This I<new> is only part of the extension interface. It is a basic
 utility constructor intended to take an already-parsed object and
 parameters and proxy them.
 
-=cut
-
-sub new {
-}
-
 =head2 table_class
 
 Returns the class to use for instantiating tables. Defaults to
@@ -203,9 +249,11 @@ with your own value for extensions.
 
 =cut
 
-sub table_class {
-    'Data::Grid::Table';
-}
+has table_class => (
+    is      => 'ro',
+    isa     => ClassName,
+    default => 'Data::Grid::Table',
+);
 
 =head2 row_class
 
@@ -214,9 +262,11 @@ L<Data::Grid::Row>.
 
 =cut
 
-sub row_class {
-    'Data::Grid::Row';
-}
+has row_class => (
+    is      => 'ro',
+    isa     => ClassName,
+    default => 'Data::Grid::Row',
+);
 
 =head2 cell_class
 
@@ -225,9 +275,11 @@ L<Data::Grid::Cell>, again an abstract class.
 
 =cut
 
-sub cell_class {
-    'Data::Grid::Cell';
-}
+has cell_class => (
+    is      => 'ro',
+    isa     => ClassName,
+    default => 'Data::Grid::Cell',
+);
 
 =head1 AUTHOR
 

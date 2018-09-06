@@ -1,8 +1,8 @@
 NAME
-    Data::Grid - Incremental read-only (for now) access to grid-based data
+    Data::Grid - Incremental read access to grid-based data
 
 VERSION
-    Version 0.01_04
+    Version 0.01_05
 
 SYNOPSIS
         use Data::Grid;
@@ -72,6 +72,15 @@ METHODS
   parse $file | %params
     The principal way to instantiate a Data::Grid object is through the
     "parse" factory method. This method detects
+
+    source
+        This is equivalent to $file.
+
+    header
+    fields
+    options
+    driver
+    checker
 
   fields
     retrieve the fields
