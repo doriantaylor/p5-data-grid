@@ -1,12 +1,14 @@
 package Data::Grid::CSV;
 
-use warnings FATAL => 'all';
+use 5.012;
 use strict;
+use warnings FATAL => 'all';
 
-use base 'Data::Grid';
+use Moo;
+
+extends 'Data::Grid';
 
 use Text::CSV;
-use IO::File;
 
 =head1 NAME
 
@@ -14,22 +16,33 @@ Data::Grid::CSV - CSV driver for Data::Grid
 
 =head1 VERSION
 
-Version 0.01_02
+Version 0.02_01
 
 =cut
 
-our $VERSION = '0.01_02';
+our $VERSION = '0.02_01';
 
 =head2 new
 
 =cut
 
-sub new {
-    my $class = shift;
-    my %p = @_;
-    $p{driver} = Text::CSV->new($p{options} || { binary => 1 }) or die $!;
-    bless \%p, $class;
-}
+has _csv => (
+    is       => 'ro',
+    required => 1,
+);
+
+around BUILDARGS => sub {
+    my ($orig, $class, @rest) = @_;
+
+    # normalize the params
+    my $p = (@rest && ref $rest[0] eq 'HASH') ? $rest[0] : { @rest };
+    my $o = $p->{options} || { binary => 1 };
+
+    # instantiate the csv driver
+    $p->{_csv} = Text::CSV->new($o) or die $!;
+
+    $class->$orig($p);
+};
 
 =head2 tables
 
@@ -46,116 +59,109 @@ sub tables {
 
 =cut
 
-sub table_class {
-    'Data::Grid::CSV::Table';
-}
+has '+table_class' => (
+    default => 'Data::Grid::CSV::Table',
+);
 
 =head2 row_class
 
 =cut
 
-sub row_class {
-    'Data::Grid::CSV::Row';
-}
+has '+row_class' => (
+    default => 'Data::Grid::CSV::Row',
+);
 
 =head2 cell_class
 
 =cut
 
-sub cell_class {
-    'Data::Grid::CSV::Cell';
-}
+has '+cell_class' => (
+    default => 'Data::Grid::CSV::Cell',
+);
 
 package Data::Grid::CSV::Table;
 
-#use Data::Grid::Table;
+use Moo;
 
-use base 'Data::Grid::Table';
+extends 'Data::Grid::Table';
 
 sub rewind {
     my $self = shift;
-    seek $self->parent->{fh}, 0, 0;
+    seek $self->parent->fh, 0, 0;
 }
 
 sub next {
     my $self = shift;
-    my $dr  = $self->parent->{driver};
-    my $row = $dr->getline($self->parent->{fh});
-    return if !$row and $dr->eof;
+    my $p   = $self->parent;
+    my $csv = $p->_csv;
+    my $row = $csv->getline($p->fh);
+    return if !$row and $csv->eof;
 
     $row ||= [];
 
-    $self->parent->row_class->new($self, $self->{counter}++, $row);
+    my $marker = $self->marker;
+    $self->_set_marker($marker + 1);
+
+    $p->row_class->new($self, $marker, $row);
 }
 
 package Data::Grid::CSV::Row;
 
-use base 'Data::Grid::Row';
+use Moo;
+
+extends 'Data::Grid::Row';
 
 sub cells {
     my $self = shift;
+    my $cls  = $self->parent->parent->cell_class;
     my @cells = @{$self->proxy};
+    @cells = map { $cls->new($self, $_, $cells[$_]) } (0..$#cells);
+
     wantarray ? @cells : \@cells;
 }
 
 package Data::Grid::CSV::Cell;
 
-use base 'Data::Grid::Cell';
+use Moo;
+
+extends 'Data::Grid::Cell';
+
+sub value {
+    $_[0]->proxy;
+}
 
 =head1 AUTHOR
 
 Dorian Taylor, C<< <dorian at cpan.org> >>
 
-=head1 BUGS
-
-Please report any bugs or feature requests to C<bug-data-grid at
-rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will
-be notified, and then you'll automatically be notified of progress on
-your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Data::Grid::CSV
-
-You can also look for information at:
+=head1 SEE ALSO
 
 =over 4
 
-=item * RT: CPAN's request tracker
+=item
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Grid>
+L<Data::Grid>
 
-=item * AnnoCPAN: Annotated CPAN documentation
+=item
 
-L<http://annocpan.org/dist/Data-Grid>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Data-Grid>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Data-Grid/>
+L<Text::CSV_XS>
 
 =back
 
+=head1 COPYRIGHT & LICENSE
 
-=head1 ACKNOWLEDGEMENTS
+Copyright 2010-2018 Dorian Taylor.
 
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You may
+obtain a copy of the License at
+L<http://www.apache.org/licenses/LICENSE-2.0>.
 
-=head1 LICENSE AND COPYRIGHT
-
-Copyright 2010 Dorian Taylor.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
-
-See http://dev.perl.org/licenses/ for more information.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied.  See the License for the specific language governing
+permissions and limitations under the License.
 
 =cut
 

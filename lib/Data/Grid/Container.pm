@@ -1,12 +1,18 @@
 package Data::Grid::Container;
 
-use warnings FATAL => 'all';
+use 5.012;
 use strict;
+use warnings FATAL => 'all';
+
+use Moo;
 
 use Scalar::Util ();
 use Carp         ();
 
-use overload '""' => \&as_string;
+use overload '""' => 'as_string';
+
+use Type::Params qw(multisig Invocant);
+use Types::Standard qw(slurpy Maybe Optional Any Int HashRef CodeRef Object);
 
 =head1 NAME
 
@@ -25,7 +31,8 @@ our $VERSION = '0.01_01';
 
     package Data::Grid::Foo;
 
-    use base 'Data::Grid::Container';
+    use Moo;
+    extends 'Data::Grid::Container';
 
     # Now code some specific stuff...
 
@@ -37,7 +44,7 @@ encapsulates the common behaviour of these components.
 
 =head1 METHODS
 
-=head2 new $parent, $position [, $proxy ]
+=head2 new $parent, $position [, $proxy ] | %params
 
 This basic constructor takes three arguments: the parent object, a
 numeric position amongst its siblings, beginning with 0, and an
@@ -46,20 +53,47 @@ advantageous to do so.
 
 =cut
 
-sub new {
-    my ($class, $parent, $position, $proxy) = @_;
-    my %p = (
-        parent   => $parent,
-        position => $position,
-        proxy    => $proxy,
+around BUILDARGS => sub {
+    state $check = Type::Params::multisig(
+        [CodeRef, Invocant, Object, Int, Optional[Any]],
+        [CodeRef, Invocant, slurpy HashRef],
+
+        # this doesn't need to get checked twice
+        # [CodeRef, Invocant, slurpy Dict[parent => Object, position => Int,
+        #                                 proxy => Optional[Maybe[Object]],
+        #                                 slurpy Any]]
     );
+    my ($orig, $class, @rest) = $check->(@_);
 
-    # this will deep-recurse due to overloading (and `no overload`
-    # doesn't work) unless done exactly like this
-    Scalar::Util::weaken($p{parent}) unless Scalar::Util::isweak($p{parent});
+    # normalize parameters
+    my $p;
+    if (ref $rest[0] eq 'HASH') {
+        $p = $rest[0];
+    }
+    else {
+        my @k = qw(parent position proxy);
+        $p = { map +($k[$_] => $rest[$_]), (0..$#k) };
+    }
 
-    bless \%p, $class;
-}
+    #warn Data::Dumper::Dumper($p);
+
+    $class->$orig($p);
+};
+
+# sub new {
+#     my ($class, $parent, $position, $proxy) = @_;
+#     my %p = (
+#         parent   => $parent,
+#         position => $position,
+#         proxy    => $proxy,
+#     );
+
+#     # this will deep-recurse due to overloading (and `no overload`
+#     # doesn't work) unless done exactly like this
+#     Scalar::Util::weaken($p{parent}) unless Scalar::Util::isweak($p{parent});
+
+#     bless \%p, $class;
+# }
 
 =head2 parent
 
@@ -67,9 +101,11 @@ Retrieve the parent object.
 
 =cut
 
-sub parent {
-    $_[0]{parent};
-}
+has parent => (
+    is        => 'ro',
+    weak_ref => 1,
+    required => 1,
+);
 
 =head2 position
 
@@ -78,9 +114,11 @@ the constructor.
 
 =cut
 
-sub position {
-    $_[0]{position};
-}
+has position => (
+    is       => 'rwp',
+    isa      => sub { Scalar::Util::looks_like_number($_) },
+    required => 1,
+);
 
 =head2 proxy
 
@@ -88,9 +126,10 @@ Retrieve the proxy object (for internal manipulation).
 
 =cut
 
-sub proxy {
-    $_[0]{proxy};
-}
+has proxy => (
+    is       => 'rwp',
+    required => 0,
+);
 
 =head2 as_string
 
@@ -107,59 +146,42 @@ sub as_string {
 
 Dorian Taylor, C<< <dorian at cpan.org> >>
 
-=head1 BUGS
-
-Please report any bugs or feature requests to C<bug-data-grid at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-
-
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Data::Grid::Container
-
-
-You can also look for information at:
+=head1 SEE ALSO
 
 =over 4
 
-=item * RT: CPAN's request tracker
+=item
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Grid>
+L<Data::Grid>
 
-=item * AnnoCPAN: Annotated CPAN documentation
+=item
 
-L<http://annocpan.org/dist/Data-Grid>
+L<Data::Grid::Table>
 
-=item * CPAN Ratings
+=item
 
-L<http://cpanratings.perl.org/d/Data-Grid>
+L<Data::Grid::Row>
 
-=item * Search CPAN
+=item
 
-L<http://search.cpan.org/dist/Data-Grid/>
+L<Data::Grid::Cell>
 
 =back
 
-=head1 SEE ALSO
+=head1 COPYRIGHT & LICENSE
 
-L<Data::Grid>, L<Data::Grid::Table>, L<Data::Grid::Row>,
-L<Data::Grid::Cell>
+Copyright 2010-2018 Dorian Taylor.
 
-=head1 LICENSE AND COPYRIGHT
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You may
+obtain a copy of the License at
+L<http://www.apache.org/licenses/LICENSE-2.0>.
 
-Copyright 2010 Dorian Taylor.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
-
-See http://dev.perl.org/licenses/ for more information.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied.  See the License for the specific language governing
+permissions and limitations under the License.
 
 =cut
 

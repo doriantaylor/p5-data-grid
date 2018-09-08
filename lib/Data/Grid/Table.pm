@@ -1,12 +1,17 @@
 package Data::Grid::Table;
 
-use warnings FATAL => 'all';
+use 5.012;
 use strict;
+use warnings FATAL => 'all';
 
-use base 'Data::Grid::Container';
+use Moo;
 
 use overload '<>'  => "next";
 use overload '@{}' => "rows";
+
+use Types::Standard qw(Int);
+
+extends 'Data::Grid::Container';
 
 =head1 NAME
 
@@ -14,12 +19,18 @@ Data::Grid::Table - A table implementation for Data::Grid
 
 =head1 VERSION
 
-Version 0.01_01
+Version 0.02_01
 
 =cut
 
-our $VERSION = '0.01_01';
+our $VERSION = '0.02_01';
 
+has marker => (
+    is       => 'rwp',
+    isa      => Int,
+    default  => 0,
+    init_arg => undef,
+);
 
 =head1 SYNOPSIS
 
@@ -144,6 +155,10 @@ unimplemented.
 
 =cut
 
+sub as_string {
+    my $self = shift;
+}
+
 #sub as_string {
 #    
 #}
@@ -162,56 +177,42 @@ sub as_data_table {
 
 Dorian Taylor, C<< <dorian at cpan.org> >>
 
-=head1 BUGS
-
-Please report any bugs or feature requests to C<bug-data-grid at
-rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will
-be notified, and then you'll automatically be notified of progress on
-your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Data::Grid::Table
-
-You can also look for information at:
+=head1 SEE ALSO
 
 =over 4
 
-=item * RT: CPAN's request tracker
+=item
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Grid>
+L<Data::Grid>
 
-=item * AnnoCPAN: Annotated CPAN documentation
+=item
 
-L<http://annocpan.org/dist/Data-Grid>
+L<Data::Grid::Container>
 
-=item * CPAN Ratings
+=item
 
-L<http://cpanratings.perl.org/d/Data-Grid>
+L<Data::Grid::Row>
 
-=item * Search CPAN
+=item
 
-L<http://search.cpan.org/dist/Data-Grid/>
+L<Data::Grid::Cell>
 
 =back
 
-=head1 SEE ALSO
+=head1 COPYRIGHT & LICENSE
 
-L<Data::Grid>, L<Data::Grid::Container>, L<Data::Grid::Row>,
-L<Data::Grid::Cell>
+Copyright 2010-2018 Dorian Taylor.
 
-=head1 LICENSE AND COPYRIGHT
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You may
+obtain a copy of the License at
+L<http://www.apache.org/licenses/LICENSE-2.0>.
 
-Copyright 2010 Dorian Taylor.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
-
-See http://dev.perl.org/licenses/ for more information.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied.  See the License for the specific language governing
+permissions and limitations under the License.
 
 =cut
 

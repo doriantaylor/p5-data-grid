@@ -16,13 +16,14 @@ requires 'Type::Tiny' => '1.0';
 # actual do-the-job stuff
 
 requires 'IO::Scalar'              => '2.110';
-requires 'parent'                  => '0.223';
-requires 'Spreadsheet::ParseExcel' => '0.57';
-requires 'Spreadsheet::XLSX'       => '0.13';
+requires 'IO::ScalarArray'         => '2.110';
+requires 'Spreadsheet::ParseExcel' => '0.65';
+requires 'Spreadsheet::ParseXLSX'  => '0.27';
 requires 'Text::CSV'               => '1.18';
 
 # don't strictly need these but they are useful
 
+recommends 'Text::CSV_XS'   => '1.18';
 recommends 'File::MMagic'   => '1.27';
 recommends 'File::MimeInfo' => '0.27';
 recommends 'Data::Table'    => '1.54';

@@ -1,13 +1,17 @@
 package Data::Grid::Cell;
 
-use warnings FATAL => 'all';
+use 5.012;
 use strict;
-
-use base 'Data::Grid::Container';
+use warnings FATAL => 'all';
 
 use overload '0+'   => 'value';
 use overload '""'   => 'value';
 use overload 'bool' => 'value';
+
+use Moo;
+
+extends 'Data::Grid::Container';
+
 
 =head1 NAME
 
@@ -76,59 +80,42 @@ sub row {
 
 Dorian Taylor, C<< <dorian at cpan.org> >>
 
-=head1 BUGS
-
-Please report any bugs or feature requests to C<bug-data-grid at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-
-
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Data::Grid::Cell
-
-
-You can also look for information at:
+=head1 SEE ALSO
 
 =over 4
 
-=item * RT: CPAN's request tracker
+=item
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Grid>
+L<Data::Grid>
 
-=item * AnnoCPAN: Annotated CPAN documentation
+=item
 
-L<http://annocpan.org/dist/Data-Grid>
+L<Data::Grid::Container>
 
-=item * CPAN Ratings
+=item
 
-L<http://cpanratings.perl.org/d/Data-Grid>
+L<Data::Grid::Table>
 
-=item * Search CPAN
+=item
 
-L<http://search.cpan.org/dist/Data-Grid/>
+L<Data::Grid::Row>
 
 =back
 
-=head1 SEE ALSO
+=head1 COPYRIGHT & LICENSE
 
-L<Data::Grid>, L<Data::Grid::Container>, L<Data::Grid::Table>,
-L<Data::Grid::Row>
+Copyright 2010-2018 Dorian Taylor.
 
-=head1 LICENSE AND COPYRIGHT
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You may
+obtain a copy of the License at
+L<http://www.apache.org/licenses/LICENSE-2.0>.
 
-Copyright 2010 Dorian Taylor.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
-
-See http://dev.perl.org/licenses/ for more information.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied.  See the License for the specific language governing
+permissions and limitations under the License.
 
 =cut
 

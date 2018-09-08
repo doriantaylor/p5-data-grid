@@ -1,24 +1,27 @@
 package Data::Grid::Excel;
 
-use warnings FATAL => 'all';
+use 5.012;
 use strict;
+use warnings FATAL => 'all';
 
-use base 'Data::Grid';
+use Moo;
 
 use Spreadsheet::ParseExcel;
 use Carp ();
 
+extends 'Data::Grid';
+
 =head1 NAME
 
-Data::Grid::Excel - Excel driver for Data::Grid
+Data::Grid::Excel - Excel (original OLE format) driver for Data::Grid
 
 =head1 VERSION
 
-Version 0.01_01
+Version 0.02_01
 
 =cut
 
-our $VERSION = '0.01_01';
+our $VERSION = '0.02_01';
 
 =head1 METHODS
 
@@ -26,12 +29,23 @@ our $VERSION = '0.01_01';
 
 =cut
 
-sub new {
-    my $class = shift;
-    my %p = @_;
-    $p{driver} = Spreadsheet::ParseExcel->new;
-    $p{proxy}  = $p{driver}->parse($p{fh}) or Carp::croak($p{driver}->error);
-    bless \%p, $class;
+has _proxy => (
+    is => 'rwp',
+);
+
+sub _init {
+    my ($self, $options) = @_;
+
+    my $driver = Spreadsheet::ParseExcel->new(%$options);
+    $driver->parse($self->fh) or Carp::croak($driver->error);
+}
+
+sub BUILD {
+    my ($self, $p) = @_;
+
+    my $options = ref $p->{options} eq 'HASH' ? $p->{options} : {};
+
+    $self->_set__proxy($self->_init($options));
 }
 
 =head2 tables
@@ -40,11 +54,13 @@ sub new {
 
 sub tables {
     my $self = shift;
-    my $counter = 0;
-    my @tables;
-    for my $sheet ($self->{proxy}->worksheets) {
-        push @tables, $self->table_class->new($self, $counter++, $sheet);
-    }
+
+    my $p   = $self->_proxy;
+    my $tc  = $self->table_class;
+    my $pos = 0;
+    warn $tc;
+    my @tables = map { $tc->new($self, $pos++, $_) } $p->worksheets;
+
     wantarray ? @tables : \@tables;
 }
 
@@ -52,52 +68,56 @@ sub tables {
 
 =cut
 
-sub table_class {
-    'Data::Grid::Excel::Table';
-}
+has '+table_class' => (
+    default => 'Data::Grid::Excel::Table',
+);
 
 =head2 row_class
 
 =cut
 
-sub row_class {
-    'Data::Grid::Excel::Row';
-}
+has '+row_class' => (
+    default => 'Data::Grid::Excel::Row',
+);
 
 =head2 cell_class
 
 =cut
 
-sub cell_class {
-    'Data::Grid::Excel::Cell';
-}
+has '+cell_class' => (
+    default => 'Data::Grid::Excel::Cell',
+);
 
 package Data::Grid::Excel::Table;
 
-use base 'Data::Grid::Table';
+use Moo;
+
+extends 'Data::Grid::Table';
 
 sub rewind {
-    $_[0]->{counter} = 0;
+    $_[0]->_set_marker(0);
 }
 
 sub next {
     my $self = shift;
-    $self->{counter} ||= 0;
+    my $marker = $self->marker;
     my ($minr, $maxr) = $self->proxy->row_range;
     #my ($minc, $maxc) = $self->proxy->col_range;
 
-    if ($maxr - $minr > 0 and $self->{counter} + $minr <= $maxr) {
+    if ($maxr - $minr > 0 and $marker + $minr <= $maxr) {
         #warn "yooo";
         #warn $self->parent->row_class;
-        return $self->parent->row_class->new
-            ($self, $self->{counter}, $minr + $self->{counter}++);
+        $self->_set_marker($marker + 1);
+        return $self->parent->row_class->new($self, $marker, $minr + $marker);
     }
     return;
 }
 
 package Data::Grid::Excel::Row;
 
-use base 'Data::Grid::Row';
+use Moo;
+
+extends 'Data::Grid::Row';
 
 sub cells {
     my $self = shift;
@@ -114,7 +134,9 @@ sub cells {
 
 package Data::Grid::Excel::Cell;
 
-use base 'Data::Grid::Cell';
+use Moo;
+
+extends 'Data::Grid::Cell';
 
 sub value {
     $_[0]->proxy->value if defined $_[0]->proxy;
@@ -128,56 +150,36 @@ sub literal {
 
 Dorian Taylor, C<< <dorian at cpan.org> >>
 
-=head1 BUGS
-
-Please report any bugs or feature requests to C<bug-data-grid at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Data::Grid::Excel
-
-
-You can also look for information at:
+=head1 SEE ALSO
 
 =over 4
 
-=item * RT: CPAN's request tracker
+=item
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Grid>
+L<Data::Grid>
 
-=item * AnnoCPAN: Annotated CPAN documentation
+=item
 
-L<http://annocpan.org/dist/Data-Grid>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Data-Grid>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Data-Grid/>
+L<Spreadsheet::ReadExcel>
 
 =back
 
+=head1 COPYRIGHT & LICENSE
 
-=head1 ACKNOWLEDGEMENTS
+Copyright 2010-2018 Dorian Taylor.
 
+Licensed under the Apache License, Version 2.0 (the "License"); you
+may not use this file except in compliance with the License. You may
+obtain a copy of the License at
+L<http://www.apache.org/licenses/LICENSE-2.0>.
 
-=head1 LICENSE AND COPYRIGHT
-
-Copyright 2010 Dorian Taylor.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
-
-See http://dev.perl.org/licenses/ for more information.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied.  See the License for the specific language governing
+permissions and limitations under the License.
 
 =cut
+
 
 1; # End of Data::Grid::Excel

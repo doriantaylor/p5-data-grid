@@ -4,9 +4,6 @@ use 5.012;
 use strict;
 use warnings FATAL => 'all';
 
-use File::MMagic ();
-use IO::File     ();
-use IO::Scalar   ();
 use Scalar::Util ();
 
 # module-loading paraphernalia
@@ -14,7 +11,7 @@ use String::RewritePrefix ();
 use Class::Load           ();
 
 use Moo;
-use Data::Grid::Types qw(Source Fields HeaderFlags);
+use Data::Grid::Types qw(FHlike Source Fields HeaderFlags);
 use Type::Params qw(compile multisig Invocant);
 use Types::Standard qw(slurpy Optional ClassName Any Bool
                        Str ScalarRef HashRef Enum Dict);
@@ -25,8 +22,8 @@ use Types::Standard qw(slurpy Optional ClassName Any Bool
 
 my %MAP = (
     CSV   => [qw(text/plain text/csv)],
-    Excel => [qw(application/octet-stream application/msword
-                 application/excel)],
+    Excel => [qw(application/x-ole-storage application/vnd.ms-excel
+                 application/msword application/excel)],
     'Excel::XLSX' => [
         qw(application/x-zip application/x-zip-compressed application/zip
            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)],
@@ -39,11 +36,11 @@ Data::Grid - Incremental read access to grid-based data
 
 =head1 VERSION
 
-Version 0.01_05
+Version 0.02_01
 
 =cut
 
-our $VERSION = '0.01_05';
+our $VERSION = '0.02_01';
 
 =head1 SYNOPSIS
 
@@ -133,9 +130,7 @@ C<parse> factory method. This method detects
 This is equivalent to C<$file>.
 
 =item header
-
-
-
+ 
 =item fields
 
 =item options
@@ -147,6 +142,32 @@ This is equivalent to C<$file>.
 =back
 
 =cut
+
+
+my %CHECK = (
+    MMagic => [
+        # filename-based
+        sub { File::MMagic->new->checktype_filename(shift) },
+        # fh-based
+        sub { File::MMagic->new->checktype_filehandle(shift) },
+    ],
+    MimeInfo => [
+        # filename-based
+        sub { File::MimeInfo::mimetype(shift) },
+        # fh-based
+        sub {
+            require File::MimeInfo::Magic;
+            File::MimeInfo::Magic::mimetype(shift);
+        },
+    ],
+);
+
+has fh => (
+    is       => 'ro',
+    isa      => FHlike,
+    required => 1,
+    init_arg => 'fh',
+);
 
 sub parse {
     state $check = Type::Params::multisig(
@@ -163,50 +184,72 @@ sub parse {
     my ($class, $p) = $check->(@_);
     my %p = ref $p eq 'HASH' ? %$p : (source => $p);
 
-    #require Data::Dumper;
-    #warn Data::Dumper::Dumper(\%p);
-
     # croak unless source is defined
     Carp::croak("I can't do any work unless you specify a data source.")
           unless defined $p{source};
 
-    if (ref $p{source}) {
+    my $ref = ref $p{source};
+
+    if ($ref) {
         # if it is a reference, it depends on the kind
-        if (ref $p{source} eq 'SCALAR') {
+        if ($ref eq 'SCALAR') {
             # scalar ref as a literal
+            require IO::Scalar;
             $p{fh} = IO::Scalar->new($p{source});
         }
-        elsif (ref $p{source} eq 'ARRAY') {
+        elsif ($ref eq 'ARRAY') {
             # array ref as a list of lines
+            require IO::ScalarArray;
+            $p{fh} = IO::ScalarArray->new($p{source});
         }
-        elsif (ref $p{source} eq 'GLOB' or Scalar::Util::blessed($p{source})
+        elsif ($ref eq 'GLOB' or Scalar::Util::blessed($p{source})
                    && $p{source}->isa('IO::Seekable')) {
             # ioref as just a straight fh
             $p{fh} = $p{source};
         }
         else {
             # dunno
+            Carp::croak("Don't know what to do with $ref as a source.");
         }
     }
     else {
         # if it is a string, it is assumed to be a filename
+        require IO::File;
         $p{fh} = IO::File->new($p{source}) or Carp::croak($!);
     }
+
+    # binary this because it gets messed up otherwise
     binmode $p{fh};
 
+    # if you didn't specify a driver we pick one for you
     unless ($p{driver}) {
-        # now check mime type
-        my $magic = File::MMagic->new;
-        my $type  = $magic->checktype_filehandle($p{fh});
-        seek $p{fh}, 0, 0;
+        $p{checker} ||= 'MMagic';
+        Class::Load::try_load_class("File::$p{checker}") or die
+              "Install File::$p{checker} to do type detection. See docs.";
+
+        my $type;
+        unless ($ref) {
+            # check the type by filename
+            $type = $CHECK{$p{checker}}[0]->($p{source}) // '';
+            # octet-stream is a bad type
+            undef $type unless $MAP{$type};
+        }
+
+        # now check the filehandle
+        unless ($type) {
+            $type = $CHECK{$p{checker}}[1]->($p{fh});
+            # reset the filehandle
+            seek $p{fh}, 0, 0;
+        }
+
         Carp::croak("There is no driver mapped to $type") unless $MAP{$type};
 
         $p{driver} = $MAP{$type};
     }
 
+    # now load the driver
     (my $driver) = String::RewritePrefix->rewrite
         ({ '' => 'Data::Grid::', '+' => ''}, delete $p{driver});
-
     Class::Load::load_class($driver);
 
     $driver->new(%p);
@@ -324,15 +367,32 @@ L<http://search.cpan.org/dist/Data-Grid/>
 
 =head1 SEE ALSO
 
-L<Text::CSV_XS>, L<Spreadsheet::ReadExcel>, L<Spreadsheet::XLSX>,
+=over 4
+
+=item
+
+L<Text::CSV>
+
+=item
+
+L<Spreadsheet::ReadExcel>
+
+=item
+
+L<Spreadsheet::XLSX>
+
+=item
+
 L<Data::Table>
 
-=head1 LICENSE AND COPYRIGHT
+=back
 
-Copyright 2010 Dorian Taylor.
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2010-2018 Dorian Taylor.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you
-may not use this file except in compliance with the License.  You may
+may not use this file except in compliance with the License. You may
 obtain a copy of the License at
 L<http://www.apache.org/licenses/LICENSE-2.0>.
 
