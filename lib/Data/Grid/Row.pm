@@ -8,7 +8,8 @@ use warnings FATAL => 'all';
 use Moo;
 
 use overload '@{}' => 'cells';
-use overload '%{}' => 'as_hash';
+# lol this doesn't work with moo
+#use overload '%{}' => 'as_hash';
 
 extends 'Data::Grid::Container';
 
@@ -52,11 +53,10 @@ belongs. Alias for L<Data::Grid::Container/parent>.
 =cut
 
 sub table {
-    no overload '%{}';
     $_[0]->parent;
 }
 
-=head2 cells
+=head2 cells [$FLATTEN]
 
 Retrieve the cells from the row, as an array in list context or
 arrayref in scalar context. The array dereferencing operator C<@{}> is
@@ -70,7 +70,20 @@ sub cells {
     Carp::croak("This method is a stub; it must be overridden!");
 }
 
-=head2 as_hash
+=head2 width
+
+Returns the width of the row in columns. This is the same as C<scalar
+@{$row->cells}>.
+
+=cut
+
+sub width {
+    # flatten the cells, because no sense in spending any effort
+    # computing results that get immediately thrown away
+    scalar @{$_[0]->cells(1)};
+}
+
+=head2 as_hash [$FLATTEN]
 
 If the table has a heading or its columns were designated in the
 constructor or with L<Data::Grid::Table/columns>, this method will
@@ -81,22 +94,18 @@ etc. It will also fill in the blanks if the column spec is shorter
 than the actual row. If the column spec is longer, the overhang will
 be populated with C<undef>s. As well it is worth noting that duplicate
 keys will be clobbered with the rightmost value at this time, though
-that behaviour may change. As with the other pertinent methods, the
-hash dereference operator C<%{}> is overloaded and will behave as
-such:
-
-    my %cells = %$row;
+that behaviour may change.
 
 =cut
 
 sub as_hash {
-    my $self    = shift;
-    my $flatten = shift;
-    my @cols = $self->table->parent->fields or Carp::croak(
-        q{Can't make a hash of cells. The table must have a heading or },
-        q{the columns must be specified either in the constructor or by },
-        q{setting them with "columns" in Data::Grid::Table.});
+    my ($self, $flatten) = @_;
+
     my @cells = $self->cells;
+    my @cols  = $self->parent->columns;
+
+    # XXX this should probably be the global width but whatev
+    @cols = map { "col$_" } (1..scalar @cells) unless @cols;
 
     my %out;
     for my $i (0..$#cols) {
@@ -108,11 +117,12 @@ sub as_hash {
 
 =head2 as_string
 
+Returns the row as CSV, quoted where necessary, minus the newline.
+
 =cut
 
 sub as_string {
-    my $self  = shift;
-    join ',', map { $_->as_string } $self->cells;
+    join ',', map { $_->quoted } $_[0]->cells;
 }
 
 =head1 AUTHOR

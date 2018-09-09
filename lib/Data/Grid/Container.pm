@@ -20,11 +20,11 @@ Data::Grid::Container - Generic superclass for Data::Grid containers
 
 =head1 VERSION
 
-Version 0.01_01
+Version 0.02_01
 
 =cut
 
-our $VERSION = '0.01_01';
+our $VERSION = '0.02_01';
 
 
 =head1 SYNOPSIS
@@ -80,21 +80,6 @@ around BUILDARGS => sub {
     $class->$orig($p);
 };
 
-# sub new {
-#     my ($class, $parent, $position, $proxy) = @_;
-#     my %p = (
-#         parent   => $parent,
-#         position => $position,
-#         proxy    => $proxy,
-#     );
-
-#     # this will deep-recurse due to overloading (and `no overload`
-#     # doesn't work) unless done exactly like this
-#     Scalar::Util::weaken($p{parent}) unless Scalar::Util::isweak($p{parent});
-
-#     bless \%p, $class;
-# }
-
 =head2 parent
 
 Retrieve the parent object.
@@ -109,8 +94,7 @@ has parent => (
 
 =head2 position
 
-Retrieve the absolute position of the object, as it was passed in from
-the constructor.
+The position of the object in a list of its siblings, starting with 0.
 
 =cut
 
@@ -122,7 +106,7 @@ has position => (
 
 =head2 proxy
 
-Retrieve the proxy object (for internal manipulation).
+Whatever object or value the container is proxying.
 
 =cut
 

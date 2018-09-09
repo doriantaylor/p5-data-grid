@@ -4,10 +4,15 @@ use 5.012;
 use strict;
 use warnings FATAL => 'all';
 
-use Type::Library -base, -declare => qw(FHlike Source Fields HeaderFlags);
+use Type::Library -base, -declare => qw(FHlike Source Fields HeaderFlags
+                                        Offsets Checker);
 use Type::Utils -all;
-use Types::Standard
-    qw(Maybe Any Value Bool Str ScalarRef ArrayRef GlobRef Object InstanceOf);
+use Types::Standard qw(Maybe Any Value Bool Str Int ScalarRef ArrayRef
+                       GlobRef Enum Object InstanceOf);
+use Types::XSD::Lite qw(NonNegativeInteger);
+
+# not sure if this is smart or stupid
+use Class::Load;
 
 our $VERSION = '0.02_01';
 
@@ -55,6 +60,36 @@ header. Coerces from a single value.
 subtype HeaderFlags, as ArrayRef[Bool];
 coerce HeaderFlags, from ArrayRef[Any], via { [map { !!$_ } @{$_}] };
 coerce HeaderFlags, from Maybe[Value],  via { [!!$_] };
+
+=head2 Offsets
+
+This is an array of offsets, which are non-negative integers.
+
+=cut
+
+subtype Offsets, as ArrayRef[NonNegativeInteger];
+coerce Offsets, from NonNegativeInteger, via { [$_] };
+
+=head2 Checker
+
+=cut
+
+my %CMAP = (
+    'MMagic'   => 'File::MMagic',
+    'MimeInfo' => 'File::MimeInfo::Magic',
+);
+
+my @ENUM = qw(MMagic MimeInfo File::MMagic File::MimeInfo::Magic);
+
+subtype Checker, as InstanceOf['File::MMagic', 'File::MimeInfo::Magic'];
+coerce Checker, from Enum[@ENUM], via {
+    my $class = $CMAP{$_} || $_;
+
+    Class::Load::try_load_class($class) or die
+          "Install $class to do type detection. See docs.";
+
+    $class->new;
+};
 
 =head1 COPYRIGHT & LICENSE
 

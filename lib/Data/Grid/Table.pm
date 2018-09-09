@@ -9,7 +9,9 @@ use Moo;
 use overload '<>'  => "next";
 use overload '@{}' => "rows";
 
-use Types::Standard qw(Int);
+use Types::Standard  qw(slurpy Undef Bool Int Str Maybe Optional ArrayRef);
+use Types::XSD::Lite qw(PositiveInteger NonNegativeInteger);
+use Type::Params     qw(compile multisig Invocant);
 
 extends 'Data::Grid::Container';
 
@@ -24,13 +26,6 @@ Version 0.02_01
 =cut
 
 our $VERSION = '0.02_01';
-
-has marker => (
-    is       => 'rwp',
-    isa      => Int,
-    default  => 0,
-    init_arg => undef,
-);
 
 =head1 SYNOPSIS
 
@@ -58,6 +53,136 @@ has marker => (
     my @rows = @$table;
 
 =head1 METHODS
+
+=head2 new
+
+=cut
+
+sub BUILD {
+    my $self = shift;
+
+    # set initial columns
+    my @ic = @{$self->_init_cols};
+    $self->columns(@ic) if @ic;
+
+    $self->ffwd($self->start);
+
+    if ($self->header and my $hdr = $self->next) {
+        # set the columns to the header in the absence of supplied columns
+
+        my @hdr = map { $_->value } @$hdr;
+
+        $self->columns(@hdr) unless @ic;
+    }
+
+    $self->ffwd($self->skip);
+
+    return;
+}
+
+=over 4
+
+=item start
+
+This non-negative integer offset tells the table to skip the first N
+rows, I<before> looking for any header. Defaults to zero.
+
+=cut
+
+has start => (
+    is      => 'rw',
+    isa     => NonNegativeInteger,
+    default => 0,
+);
+
+=head2 header
+
+This flag tells us that the first (logical) row is a header. Defaults
+to false.
+
+=cut
+
+has header => (
+    is      => 'rw',
+    isa     => Bool,
+    coerce  => sub { int !!$_[0] },
+    default => 0,
+);
+
+=item skip
+
+This offset tells us to skip N rows I<after> any header. Defaults to
+zero.
+
+=cut
+
+has skip => (
+    is      => 'rw',
+    isa     => NonNegativeInteger,
+    default => 0,
+);
+
+=item columns
+
+This C<ARRAY> reference of columns will be used in lieu of, or I<instead>
+of, any header row. Columns (or the header row)
+
+=cut
+
+# we save the explicit initial columns as a separate member
+has _init_cols => (
+    is       => 'ro',
+    isa      => ArrayRef[Str],
+    default  => sub { [] },
+    init_arg => 'columns',
+);
+
+has _columns => (
+    is       => 'ro',
+    default  => sub { [] },
+    init_arg => undef,
+);
+
+sub columns {
+    state $check = Type::Params::multisig(
+        [Invocant],
+        [Invocant, Undef],
+        [Invocant, slurpy ArrayRef[Str]]);
+    my ($self, @args) = $check->(@_);
+    my $cols = $self->_columns;
+
+    # no args? this is an accessor
+    return wantarray ? @$cols : [@$cols] unless @args;
+
+    my @old = @$cols;
+    @{$self->_init_cols} = @$cols = defined $args[0] ? @{$args[0]} : ();
+
+    wantarray ? @old : \@old;
+}
+
+=back
+
+=head2 cursor
+
+Returns the row offset as an integer starting with zero, which is the
+beginning of the table I<irrespective> of offsets like L</start>,
+L</header>, and L</skip>. Not to be confused with
+L<Data::Grid::Container/position>.
+
+=cut
+
+sub _offset {
+    my $self = shift;
+    $self->start + $self->header + $self->skip;
+}
+
+has cursor => (
+    is       => 'rwp',
+    isa      => NonNegativeInteger,
+    default  => 0,
+    init_arg => undef,
+);
+
 
 =head2 next
 
@@ -99,42 +224,58 @@ sub rewind {
     Carp::croak("This method is a stub; it must be overridden!");
 }
 
-=head2 rows
+=head2 ffwd $ROWS
 
-Retrieves an array of rows all at once, or if taken in scalar context,
-an array reference. This method overloads the array dereferencing
-operator C<@{}>, so you can use it like this:
+Fast forward by C<$ROWS> and return what is there.
+
+=cut
+
+sub ffwd {
+    state $check = Type::Params::compile(Invocant, NonNegativeInteger);
+
+    my ($self, $rows) = $check->(@_);
+    return unless $rows;
+
+    # call in void context to skip the overhead of constructing the row
+    $self->next while $rows-- > 1;
+
+    $self->next; # returning the last one
+}
+
+=head2 rows [$FLATTEN];
+
+Retrieves an array of rows all at once. This method overloads the
+array dereferencing operator C<@{}>, so you can use it like this:
 
     my @rows = @$table;
+
+Note that this implementation is I<extremely naïve> and you will
+almost invariably want to override it in a subclass.
 
 =cut
 
 sub rows {
-    my ($self, @rows) = @_;
-    #my @rows;
+    my ($self, $flatten) = @_;
+    my @rows;
 
     $self->rewind;
     while (my $row = $self->next) {
-        push @rows, $row;
+        push @rows, $flatten ? scalar $row->cells(1) : $row;
     }
     $self->rewind;
 
     wantarray ? @rows : \@rows;
 }
 
-=head2 columns
+# =head2 columns
 
-=cut
+# =cut
 
-sub columns {
-    $_[0]->parent->columns;
-}
+# =head2 width
 
-=head2 width
+# Gets the width, in columns, of the table.
 
-Gets the width, in columns, of the table.
-
-=cut
+# =cut
 
 =head2 height
 
@@ -142,35 +283,31 @@ Gets the height, in rows, of the table. Careful, for drivers that only
 do sequential access, this means iterating over the whole set, so you
 might as well.
 
+This implementation is naïve; please override it in a subclass.
+
 =cut
 
 sub height {
-    scalar @{$_[0]->rows};
+    # overloaded lol
+    scalar @{$_[0]};
 }
 
 =head2 as_string
 
-Serializes the table into a string and returns the result. Currently
-unimplemented.
+Returns the table as CSV.
 
 =cut
 
 sub as_string {
     my $self = shift;
-}
+    my $out = '';
+    $self->rewind;
 
-#sub as_string {
-#    
-#}
+    while (my $row = $self->next) {
+        $out .= $row->as_string . "\n";
+    }
 
-=head2 as_data_table
-
-Returns a new Data::Table object for compatibility.
-
-=cut
-
-sub as_data_table {
-    require Data::Table;
+    $out;
 }
 
 =head1 AUTHOR

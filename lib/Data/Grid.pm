@@ -11,7 +11,8 @@ use String::RewritePrefix ();
 use Class::Load           ();
 
 use Moo;
-use Data::Grid::Types qw(FHlike Source Fields HeaderFlags);
+use Data::Grid::Types qw(FHlike Source Fields HeaderFlags Offsets
+                         Checker to_Checker);
 use Type::Params qw(compile multisig Invocant);
 use Types::Standard qw(slurpy Optional ClassName Any Bool
                        Str ScalarRef HashRef Enum Dict);
@@ -55,7 +56,7 @@ our $VERSION = '0.02_01';
     my $grid = Data::Grid->parse(
         source  => 'arbitrary.csv', # or xls, or xlsx, or filehandle...
         header  => 1,               # first line is a header everywhere
-        fields  => [qw(a b c)],     # override field header
+        columns => [qw(a b c)],     # override the header
         options => \%options,       # driver-specific options
     );
 
@@ -118,10 +119,14 @@ Suffice to say this module is B<ALPHA QUALITY> at best.
 
 =head1 METHODS
 
-=head2 parse $file | %params
+=head2 parse $FILE | %PARAMS
 
 The principal way to instantiate a L<Data::Grid> object is through the
-C<parse> factory method. This method detects
+C<parse> factory method. You can either pass it a filelike thing or a
+set of parameters. I<Filelike thing> is either a filename, C<GLOB>
+reference, C<SCALAR> reference or C<ARRAY> reference of scalars. If
+the filelike thing is passed alone, its type will be detected using
+L<File::MMagic>. To tune this behaviour, use the parameters:
 
 =over 4
 
@@ -130,14 +135,89 @@ C<parse> factory method. This method detects
 This is equivalent to C<$file>.
 
 =item header
- 
-=item fields
+
+If you know that the document you're opening has a header, set this
+flag to a true value and it will be consumed for use in
+L<Data::Grid::Row/as_hash>. If there is more than one table in the
+document, set this value to an C<ARRAY> reference of flags. This
+object will be treated as a ring, meaning that, for instance, if the
+header designation is C<[1, 0]>, the third table in the document will
+be treated as having a header, fourth will not, the fifth will, and so
+on.
+
+=cut
+
+my $zero_aref = sub { [0] };
+
+has header => (
+    is      => 'ro',
+    isa     => HeaderFlags,
+    coerce  => 1,
+    default => $zero_aref,
+);
+
+=item columns
+
+Specify a list of columns in lieu of a header, or otherwise override
+any header, which is thrown away. A single C<ARRAY> reference of
+strings will be duplicated to each table in the document. An array of
+arrays will be applied to each table with the same wrapping behaviour
+as C<header>.
+
+=cut
+
+has columns => (
+    is      => 'ro',
+    isa     => Fields,
+    coerce  => 1,
+    default => sub { [] },
+);
+
+=item start
+
+Set a row offset, i.e, a number of rows to skip I<before> any header.
+Since this is an offset, it starts with zero. Same rule applies for
+multiple tables in the document.
+
+=cut
+
+has start => (
+    is      => 'ro',
+    isa     => Offsets,
+    coerce  => 1,
+    default => $zero_aref,
+);
+
+=item skip
+
+Set a number of rows to skip I<after> the header, defaulting, of
+course, to zero. Same multi-table rule applies.
+
+=cut
+
+has skip => (
+    is      => 'ro',
+    isa     => Offsets,
+    coerce  => 1,
+    default => $zero_aref,
+);
 
 =item options
 
+This C<HASH> reference will be passed as-is to the driver.
+
 =item driver
 
+Specify a driver and bypass type detection. Modules under the
+L<Data::Grid> namespace can be handed in as L<CSV|Data::Grid::CSV>,
+L<Excel|Data::Grid::Excel>, and L<Excel::XLSX|Data::Grid::Excel::XLSX>.
+Prefix with a C<+> for other package namespaces.
+
 =item checker
+
+Specify either L<MMagic|File::MMagic> or L<MimeInfo|File::MimeInfo> to
+detect the type of file. L<MMagic|File::MMagic> is the default. In
+lieu of the class name
 
 =back
 
@@ -145,28 +225,18 @@ This is equivalent to C<$file>.
 
 
 my %CHECK = (
-    MMagic => [
+    'File::MMagic' => [
         # filename-based
-        sub { File::MMagic->new->checktype_filename(shift) },
+        sub { $_[0]->checktype_filename($_[1]) },
         # fh-based
-        sub { File::MMagic->new->checktype_filehandle(shift) },
+        sub { $_[0]->checktype_filehandle($_[1]) },
     ],
-    MimeInfo => [
+    'File::MimeInfo::Magic' => [
         # filename-based
-        sub { File::MimeInfo::mimetype(shift) },
+        sub { $_[0]->mimetype($_[1]) },
         # fh-based
-        sub {
-            require File::MimeInfo::Magic;
-            File::MimeInfo::Magic::mimetype(shift);
-        },
+        sub { $_[0]->mimetype($_[1]) },
     ],
-);
-
-has fh => (
-    is       => 'ro',
-    isa      => FHlike,
-    required => 1,
-    init_arg => 'fh',
 );
 
 sub parse {
@@ -174,10 +244,10 @@ sub parse {
         [Invocant, Source],
         [Invocant, slurpy Dict[source  => Source,
                                header  => Optional[HeaderFlags],
-                               fields  => Optional[Fields],
+                               columns => Optional[Fields],
                                options => Optional[HashRef],
                                driver  => Optional[ClassName],
-                               checker => Optional[Enum['MMagic', 'MimeInfo']],
+                               checker => Optional[Checker],
                                slurpy Any]]
     );
 
@@ -189,6 +259,10 @@ sub parse {
           unless defined $p{source};
 
     my $ref = ref $p{source};
+
+
+    #require Data::Dumper;
+    #warn Data::Dumper::Dumper(\%p);
 
     if ($ref) {
         # if it is a reference, it depends on the kind
@@ -223,26 +297,26 @@ sub parse {
 
     # if you didn't specify a driver we pick one for you
     unless ($p{driver}) {
-        $p{checker} ||= 'MMagic';
-        Class::Load::try_load_class("File::$p{checker}") or die
-              "Install File::$p{checker} to do type detection. See docs.";
+        my $checker ||= to_Checker('MMagic');
+        my ($ckey) = grep { $checker->isa($_) } sort keys %CHECK;
 
         my $type;
         unless ($ref) {
             # check the type by filename
-            $type = $CHECK{$p{checker}}[0]->($p{source}) // '';
-            # octet-stream is a bad type
+            $type = $CHECK{$ckey}[0]->($checker, $p{source}) // '';
+            # do not continue unless we get a match
             undef $type unless $MAP{$type};
         }
 
         # now check the filehandle
         unless ($type) {
-            $type = $CHECK{$p{checker}}[1]->($p{fh});
+            $type = $CHECK{$ckey}[1]->($checker, $p{fh});
             # reset the filehandle
             seek $p{fh}, 0, 0;
         }
 
-        Carp::croak("There is no driver mapped to $type") unless $MAP{$type};
+        Carp::croak("There is no driver mapped to the detected type $type")
+              unless $MAP{$type};
 
         $p{driver} = $MAP{$type};
     }
@@ -255,40 +329,39 @@ sub parse {
     $driver->new(%p);
 }
 
-=head2 fields
-
-retrieve the fields
-
-=cut
-
-sub fields {
-    my $self   = shift;
-    my @fields = @{$self->{fields} || []};
-    wantarray ? @fields : \@fields;
-}
-
 =head2 tables
 
-Retrieve the tables
+Generate and return the array of tables.
 
 =cut
 
 sub tables {
+    Carp::croak('This is a stub method that must be overridden.');
 }
+
+=head2 fh
+
+Retrieve the document's file handle embedded in the grid object.
+
+=cut
+
+has fh => (
+    is       => 'ro',
+    isa      => FHlike,
+    required => 1,
+    init_arg => 'fh',
+);
 
 =head1 EXTENSION INTERFACE
 
-=head2 new
-
-This I<new> is only part of the extension interface. It is a basic
-utility constructor intended to take an already-parsed object and
-parameters and proxy them.
+Take a look at L<Data::Grid::CSV> or L<Data::Grid::Excel> for clues on
+how to extend this package.
 
 =head2 table_class
 
 Returns the class to use for instantiating tables. Defaults to
-L<Data::Grid::Table>, which is an abstract class. Override this method
-with your own value for extensions.
+L<Data::Grid::Table>, which is an abstract class. Override this
+accessor and its neighbours with your own values for extensions.
 
 =cut
 
@@ -324,17 +397,37 @@ has cell_class => (
     default => 'Data::Grid::Cell',
 );
 
+=head2 table_params $POSITION
+
+Generate a set of parameters suitable for passing in as a constructor,
+either as a hash or C<HASH> reference, depending on calling context.
+
+=cut
+
+sub table_params {
+    my ($self, $pos) = @_;
+
+    my %p = (parent => $self, position => $pos);
+
+    # okay this goes through all similar arrayref members and picks
+    # the element that corresponds to the table modulo the length of
+    # the list of tables, which frankly is pretty clever
+    for my $k (qw(header columns start skip)) {
+        my @x = @{$self->$k || []};
+        $p{$k} = $x[$pos % @x] if @x;
+    }
+
+    wantarray ? %p : \%p;
+}
+
 =head1 AUTHOR
 
 Dorian Taylor, C<< <dorian at cpan.org> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-data-grid at
-rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>.  I will
-be notified, and then you'll automatically be notified of progress on
-your bug as I make changes.
+Please report bugs to L<GitHub
+issues|https://github.com/doriantaylor/p5-data-grid/issues>.
 
 =head1 SUPPORT
 
@@ -342,28 +435,8 @@ You can find documentation for this module with the perldoc command.
 
     perldoc Data::Grid
 
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Grid>
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/Data-Grid>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Data-Grid>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Data-Grid/>
-
-=back
-
+Alternatively, you can read the documentation on
+L<MetaCPAN|https://metacpan.org/release/Data::Grid>.
 
 =head1 SEE ALSO
 
@@ -375,11 +448,11 @@ L<Text::CSV>
 
 =item
 
-L<Spreadsheet::ReadExcel>
+L<Spreadsheet::ParseExcel>
 
 =item
 
-L<Spreadsheet::XLSX>
+L<Spreadsheet::ParseXLSX>
 
 =item
 

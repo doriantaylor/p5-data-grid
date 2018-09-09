@@ -66,6 +66,26 @@ sub literal {
     $_[0]->value;
 }
 
+=head2 quoted
+
+Returns the value with quotes, per L<RFC
+4180|https://tools.ietf.org/html/rfc4180>, if it needs to be quoted.
+
+=cut
+
+sub quoted {
+    my $val = $_[0]->value;
+
+    # rfc4180
+    if ($val =~ /[",\x0a\x0d]/sm) {
+        $val =~ s/"/""/g;
+        $val = '"' . $val . '"';
+    }
+
+    $val;
+}
+
+
 =head2 row
 
 Alias for L<Data::Grid::Container/parent>.

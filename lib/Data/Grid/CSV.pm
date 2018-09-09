@@ -50,9 +50,13 @@ around BUILDARGS => sub {
 
 sub tables {
     my $self = shift;
-    #warn @Data::Grid::CSV::Table::ISA;
-    my $table = $self->table_class->new($self, 0);
-    wantarray ? ($table) : [$table];
+
+    my %p = $self->table_params(0);
+
+    # require Data::Dumper;
+    # warn Data::Dumper::Dumper(\%p);
+
+    my @table = ($self->table_class->new(%p));
 }
 
 =head2 table_class
@@ -85,24 +89,81 @@ use Moo;
 
 extends 'Data::Grid::Table';
 
+# sub BUILD {
+#     my $self = shift;
+
+#     # here is where we process
+# }
+
+# has '+header' => (
+#     trigger => sub {
+#         my ($self, $val) = @_;
+#     },
+# );
+
+# has '+cursor' => (
+#     trigger => sub {
+#         warn "hi lol $_[1] -> " . $_[0]->cursor;
+#     },
+# );
+
+# byte offset cache
+has _cache => (
+    is      => 'ro',
+    default => sub { [0] },
+);
+
 sub rewind {
     my $self = shift;
-    seek $self->parent->fh, 0, 0;
+    # we actually want to seek the file to the position after the offset
+
+    my $p     = $self->parent;
+    my $fh    = $p->fh;
+    my $csv   = $p->_csv;
+    my $off   = $self->_offset;
+    my $cache = $self->_cache;
+
+    if (defined $cache->[$off]) {
+        seek $fh, $cache->[$off], 0;
+    }
+    else {
+        seek $fh, 0, 0;
+        # start this at 1 because we already have position 0 (it's 0)
+        for my $i (1..$off) {
+            $csv->getline($fh);
+            last if eof $fh or $csv->eof;
+            $cache->[$i] = tell $fh;
+        }
+        # fh position will now be on the first (desired) record
+    }
+
+    $self->_set_cursor($off);
 }
 
 sub next {
     my $self = shift;
     my $p   = $self->parent;
+    my $fh  = $p->fh;
     my $csv = $p->_csv;
-    my $row = $csv->getline($p->fh);
+
+    my $cache  = $self->_cache;
+    my $cursor = $self->cursor;
+
+    if (defined (my $pos = $cache->[$cursor])) {
+        seek $fh, $pos, 0;
+    }
+
+    # attempt to get the row
+    my $row = $csv->getline($fh);
     return if !$row and $csv->eof;
 
-    $row ||= [];
+    # i guess $csv->eof doesn't get set until after you hit the file's eof
+    $cache->[$cursor + 1] //= tell $fh unless eof $fh;
 
-    my $marker = $self->marker;
-    $self->_set_marker($marker + 1);
+    # clean up and get out of here
+    $self->_set_cursor($cursor + 1);
 
-    $p->row_class->new($self, $marker, $row);
+    $p->row_class->new($self, $cursor, $row) if defined wantarray;
 }
 
 package Data::Grid::CSV::Row;
@@ -112,10 +173,12 @@ use Moo;
 extends 'Data::Grid::Row';
 
 sub cells {
-    my $self = shift;
-    my $cls  = $self->parent->parent->cell_class;
+    my ($self, $flatten) = @_;
+
+    my $class = $self->parent->parent->cell_class;
     my @cells = @{$self->proxy};
-    @cells = map { $cls->new($self, $_, $cells[$_]) } (0..$#cells);
+
+    @cells = map { $class->new($self, $_, $cells[$_]) } (0..$#cells);
 
     wantarray ? @cells : \@cells;
 }

@@ -55,12 +55,17 @@ sub BUILD {
 sub tables {
     my $self = shift;
 
-    my $p   = $self->_proxy;
-    my $tc  = $self->table_class;
-    my $pos = 0;
-    warn $tc;
-    my @tables = map { $tc->new($self, $pos++, $_) } $p->worksheets;
+    my $p  = $self->_proxy;
+    my $tc = $self->table_class;
+    my @ws = $p->worksheets;
 
+    my @tables;
+    for my $i (0..$#ws) {
+        my %p = $self->table_params($i);
+        push @tables, $tc->new(%p, proxy => $ws[$i]);
+    }
+
+    # do this for overload
     wantarray ? @tables : \@tables;
 }
 
@@ -95,22 +100,21 @@ use Moo;
 extends 'Data::Grid::Table';
 
 sub rewind {
-    $_[0]->_set_marker(0);
+    $_[0]->_set_cursor($_[0]->_offset);
 }
 
 sub next {
     my $self = shift;
-    my $marker = $self->marker;
+    my $cursor = $self->cursor;
     my ($minr, $maxr) = $self->proxy->row_range;
-    #my ($minc, $maxc) = $self->proxy->col_range;
 
-    if ($maxr - $minr > 0 and $marker + $minr <= $maxr) {
-        #warn "yooo";
-        #warn $self->parent->row_class;
-        $self->_set_marker($marker + 1);
-        return $self->parent->row_class->new($self, $marker, $minr + $marker);
-    }
-    return;
+    return unless $maxr - $minr > 0 and $cursor + $minr <= $maxr;
+
+    $self->_set_cursor($cursor + 1);
+
+    # only bother with this if there is a caller
+    $self->parent->row_class->new($self, $cursor, $minr + $cursor)
+        if defined wantarray;
 }
 
 package Data::Grid::Excel::Row;
@@ -120,15 +124,20 @@ use Moo;
 extends 'Data::Grid::Row';
 
 sub cells {
-    my $self = shift;
-    my ($minc, $maxc) = $self->parent->proxy->col_range;
-    #warn "$minc $maxc";
+    my ($self, $flatten) = @_;
+
+    my $p     = $self->parent;
+    my $class = $p->parent->cell_class;
+    my $row   = $p->proxy;
+
+    my ($minc, $maxc) = $row->col_range;
     my @cells;
-    #warn $self->parent->parent->cell_class;
     for (my $c = 0; $c <= $maxc - $minc; $c++) {
-        push @cells, $self->parent->parent->cell_class->new
-            ($self, $c, $self->parent->proxy->get_cell($self->proxy, $c));
+        my $cell = $row->get_cell($self->proxy, $c);
+        push @cells, $flatten ? $cell->value : $class->new($self, $c, $cell);
     }
+
+    # do this for overload
     wantarray ? @cells : \@cells;
 }
 

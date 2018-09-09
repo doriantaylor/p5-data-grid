@@ -2,7 +2,7 @@ NAME
     Data::Grid - Incremental read access to grid-based data
 
 VERSION
-    Version 0.01_05
+    Version 0.02_01
 
 SYNOPSIS
         use Data::Grid;
@@ -16,7 +16,7 @@ SYNOPSIS
         my $grid = Data::Grid->parse(
             source  => 'arbitrary.csv', # or xls, or xlsx, or filehandle...
             header  => 1,               # first line is a header everywhere
-            fields  => [qw(a b c)],     # override field header
+            columns => [qw(a b c)],     # override the header
             options => \%options,       # driver-specific options
         );
 
@@ -69,24 +69,60 @@ DEVELOPER RELEASE
     Suffice to say this module is ALPHA QUALITY at best.
 
 METHODS
-  parse $file | %params
+  parse $FILE | %PARAMS
     The principal way to instantiate a Data::Grid object is through the
-    "parse" factory method. This method detects
+    "parse" factory method. You can either pass it a filelike thing or a set
+    of parameters. *Filelike thing* is either a filename, "GLOB" reference,
+    "SCALAR" reference or "ARRAY" reference of scalars. If the filelike
+    thing is passed alone, its type will be detected using File::MMagic. To
+    tune this behaviour, use the parameters:
 
     source
         This is equivalent to $file.
 
     header
-    fields
-    options
-    driver
-    checker
+        If you know that the document you're opening has a header, set this
+        flag to a true value and it will be consumed for use in "as_hash" in
+        Data::Grid::Row. If there is more than one table in the document,
+        set this value to an "ARRAY" reference of flags. This object will be
+        treated as a ring, meaning that, for instance, if the header
+        designation is "[1, 0]", the third table in the document will be
+        treated as having a header, fourth will not, the fifth will, and so
+        on.
 
-  fields
-    retrieve the fields
+    columns
+        Specify a list of columns in lieu of a header, or otherwise override
+        any header, which is thrown away. A single "ARRAY" reference of
+        strings will be duplicated to each table in the document. An array
+        of arrays will be applied to each table with the same wrapping
+        behaviour as "header".
+
+    start
+        Set a row offset, i.e, a number of rows to skip *before* any header.
+        Since this is an offset, it starts with zero. Same rule applies for
+        multiple tables in the document.
+
+    skip
+        Set a number of rows to skip *after* the header, defaulting, of
+        course, to zero. Same multi-table rule applies.
+
+    options
+        This "HASH" reference will be passed as-is to the driver.
+
+    driver
+        Specify a driver and bypass type detection. Modules under the
+        Data::Grid namespace can be handed in as CSV, Excel, and
+        Excel::XLSX. Prefix with a "+" for other package namespaces.
+
+    checker
+        Specify either MMagic or MimeInfo to detect the type of file. MMagic
+        is the default. In lieu of the class name
 
   tables
-    Retrieve the tables
+    Generate and return the array of tables.
+
+  fh
+    Retrieve the document's file handle embedded in the grid object.
 
 EXTENSION INTERFACE
   new
@@ -96,8 +132,8 @@ EXTENSION INTERFACE
 
   table_class
     Returns the class to use for instantiating tables. Defaults to
-    Data::Grid::Table, which is an abstract class. Override this method with
-    your own value for extensions.
+    Data::Grid::Table, which is an abstract class. Override this accessor
+    and its neighbours with your own values for extensions.
 
   row_class
     Returns the class to use for instantiating rows. Defaults to
@@ -107,44 +143,36 @@ EXTENSION INTERFACE
     Returns the class to use for instantiating cells. Defaults to
     Data::Grid::Cell, again an abstract class.
 
+  table_params $POSITION
+    Generate a set of parameters suitable for passing in as a constructor,
+    either as a hash or "HASH" reference, depending on calling context.
+
 AUTHOR
     Dorian Taylor, "<dorian at cpan.org>"
 
 BUGS
-    Please report any bugs or feature requests to "bug-data-grid at
-    rt.cpan.org", or through the web interface at
-    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Grid>. I will be
-    notified, and then you'll automatically be notified of progress on your
-    bug as I make changes.
+    Please report bugs to GitHub issues
+    <https://github.com/doriantaylor/p5-data-grid/issues>.
 
 SUPPORT
     You can find documentation for this module with the perldoc command.
 
         perldoc Data::Grid
 
-    You can also look for information at:
-
-    *   RT: CPAN's request tracker
-
-        <http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Grid>
-
-    *   AnnoCPAN: Annotated CPAN documentation
-
-        <http://annocpan.org/dist/Data-Grid>
-
-    *   CPAN Ratings
-
-        <http://cpanratings.perl.org/d/Data-Grid>
-
-    *   Search CPAN
-
-        <http://search.cpan.org/dist/Data-Grid/>
+    Alternatively, you can read the documentation on MetaCPAN
+    <https://metacpan.org/release/Data::Grid>.
 
 SEE ALSO
-    Text::CSV_XS, Spreadsheet::ReadExcel, Spreadsheet::XLSX, Data::Table
+    *   Text::CSV
 
-LICENSE AND COPYRIGHT
-    Copyright 2010 Dorian Taylor.
+    *   Spreadsheet::ParseExcel
+
+    *   Spreadsheet::ParseXLSX
+
+    *   Data::Table
+
+COPYRIGHT & LICENSE
+    Copyright 2010-2018 Dorian Taylor.
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may
     not use this file except in compliance with the License. You may obtain
