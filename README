@@ -2,7 +2,7 @@ NAME
     Data::Grid - Incremental read access to grid-based data
 
 VERSION
-    Version 0.02_01
+    Version 0.02_02
 
 SYNOPSIS
         use Data::Grid;
@@ -125,10 +125,8 @@ METHODS
     Retrieve the document's file handle embedded in the grid object.
 
 EXTENSION INTERFACE
-  new
-    This *new* is only part of the extension interface. It is a basic
-    utility constructor intended to take an already-parsed object and
-    parameters and proxy them.
+    Take a look at Data::Grid::CSV or Data::Grid::Excel for clues on how to
+    extend this package.
 
   table_class
     Returns the class to use for instantiating tables. Defaults to

@@ -7,7 +7,12 @@ abstract  'Data::Grid provides basic, incremental access to grid-shaped data.';
 readme_from 'lib/Data/Grid.pm';
 all_from 'lib/Data/Grid.pm';
 
-resources repository => 'https://github.com/doriantaylor/p5-data-grid';
+resources (
+   homepage   => 'https://github.com/doriantaylor/p5-data-grid',
+   license    => 'http://www.apache.org/licenses/LICENSE-2.0',
+   repository => 'git://github.com/doriantaylor/p5-data-grid.git',
+   bugtracker => 'https://github.com/doriantaylor/p5-data-grid/issues',
+);
 
 # metaobject stuff
 requires 'Moo'        => '2.0';
@@ -20,6 +25,11 @@ requires 'IO::ScalarArray'         => '2.110';
 requires 'Spreadsheet::ParseExcel' => '0.65';
 requires 'Spreadsheet::ParseXLSX'  => '0.27';
 requires 'Text::CSV'               => '1.18';
+
+# ugh god cpants is gonna whine without these
+
+test_requires 'File::MMagic'   => '1.27';
+test_requires 'File::MimeInfo' => '0.27';
 
 # don't strictly need these but they are useful
 

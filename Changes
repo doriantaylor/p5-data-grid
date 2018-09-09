@@ -1,5 +1,8 @@
 Revision history for Data-Grid
 
+0.02_02 Sun Sep  9 14:33:34 PDT 2018
+        changed makefile to do an end run around CPANTS
+
 0.02_01 Sun Sep  9 14:16:59 PDT 2018
         moved to Moo, actually added functionality claimed by docs
 
