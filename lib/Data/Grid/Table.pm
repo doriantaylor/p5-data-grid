@@ -15,6 +15,8 @@ use Type::Params     qw(compile multisig Invocant);
 
 extends 'Data::Grid::Container';
 
+=encoding utf8
+
 =head1 NAME
 
 Data::Grid::Table - A table implementation for Data::Grid
@@ -95,7 +97,7 @@ has start => (
     default => 0,
 );
 
-=head2 header
+=item header
 
 This flag tells us that the first (logical) row is a header. Defaults
 to false.
