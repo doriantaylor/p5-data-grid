@@ -25,6 +25,7 @@ requires 'IO::ScalarArray'         => '2.110';
 requires 'Spreadsheet::ParseExcel' => '0.65';
 requires 'Spreadsheet::ParseXLSX'  => '0.27';
 requires 'Text::CSV'               => '1.18';
+requires 'Types::XSD::Lite'        => '0.005';
 
 # ugh god cpants is gonna whine without these
 
