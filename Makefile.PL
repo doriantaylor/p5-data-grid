@@ -14,9 +14,12 @@ resources (
    bugtracker => 'https://github.com/doriantaylor/p5-data-grid/issues',
 );
 
-# metaobject stuff
-requires 'Moo'        => '2.0';
-requires 'Type::Tiny' => '1.0';
+# metaobject/housekeepy stuff
+requires 'Moo'                   => '2.0';
+requires 'Type::Tiny'            => '1.0';
+requires 'Types::XSD::Lite'      => '0.005';
+requires 'Class::Load'           => '0.23';
+requires 'String::RewritePrefix' => '0.007';
 
 # actual do-the-job stuff
 
@@ -25,7 +28,6 @@ requires 'IO::ScalarArray'         => '2.110';
 requires 'Spreadsheet::ParseExcel' => '0.65';
 requires 'Spreadsheet::ParseXLSX'  => '0.27';
 requires 'Text::CSV'               => '1.18';
-requires 'Types::XSD::Lite'        => '0.005';
 
 # ugh god cpants is gonna whine without these
 
