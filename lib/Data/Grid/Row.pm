@@ -73,7 +73,7 @@ sub cells {
 =head2 width
 
 Returns the width of the row in columns. This is the same as C<scalar
-@{$row->cells}>.
+@{$row-E<gt>cells}>.
 
 =cut
 
